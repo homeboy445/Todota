@@ -1,0 +1,258 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&family=Quicksand:wght@300;400&display=swap');
+.todo-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.todo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: space-between;
+  width: 100%;
+  margin-top: -6%;
+  font-family: 'Quicksand', sans-serif;
+}
+.todo-header > h1 {
+  font-size: 3rem;
+  align-self: center;
+  font-weight: 600;
+}
+.todo-header > div {
+  align-self: center;
+  margin-top: 2%;
+}
+.todo-header > div > h2 {
+  font-size: 1.8rem;
+  font-weight: 300;
+}
+.todo-header > div > h2 > span {
+  font-size: 2.5rem;
+  font-weight: 500;
+}
+.todo-header > div > h3 {
+  font-size: 0.8rem;
+  text-align: right;
+  margin-top: -14%;
+  font-weight: 400;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.todo-header > div > h3:active {
+  color: royalblue;
+}
+.todo-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 270px;
+  overflow: hidden;
+}
+.todo-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: -7%;
+}
+.todo-empty > h3 {
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+  width: 85%;
+  padding: 1%;
+}
+.todo-img {
+  width: 240px;
+  height: 240px;
+}
+.todo-card {
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  width: 95%;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  margin: 2%;
+  font-family: 'Montserrat', sans-serif;
+  transition: 0.2s ease;
+}
+.todo-card > h3 {
+  font-size: 1.2rem;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  width: 90%;
+}
+.todo-card > input {
+  width: 15px;
+  height: 15px;
+  border: 2px solid black;
+  padding: 1%;
+  margin-right: 4%;
+  margin-left: 2%;
+  margin-top: 23.5px;
+  cursor: pointer;
+  outline: none;
+}
+.todo-card > img {
+  width: 15px;
+  height: 15px;
+  margin: 2%;
+  transition: 0.3s ease;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.todo-card > img:hover {
+  opacity: 0.4;
+}
+.todo-floater-btn {
+  position: fixed;
+  top: 79%;
+  right: 4%;
+  display: inline-block;
+  border: none;
+  font-size: 3rem;
+  outline: none;
+}
+.todo-floater-btn {
+  appearance: button;
+  backface-visibility: hidden;
+  background-color: #405cf5;
+  border-radius: 6px;
+  border-width: 0;
+  box-shadow: rgba(50, 50, 93, 0.1) 0 0 0 1px inset,
+    rgba(50, 50, 93, 0.1) 0 2px 5px 0, rgba(0, 0, 0, 0.07) 0 1px 1px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  font-family: -apple-system, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Ubuntu, sans-serif;
+  text-align: center;
+  text-transform: none;
+  transform: translateZ(0);
+  transition: all 0.1s, box-shadow 0.08s ease-in;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 15px 33px,
+    rgba(0, 0, 0, 0.22) 0px 10px 11px;
+}
+.todo-floater-btn:disabled {
+  cursor: default;
+}
+.todo-floater-btn:active {
+  box-shadow: rgba(50, 50, 93, 0.1) 0 0 0 1px inset,
+    rgba(50, 50, 93, 0.2) 0 6px 15px 0, rgba(0, 0, 0, 0.1) 0 2px 2px 0,
+    rgba(50, 151, 211, 0.3) 0 0 0 4px;
+}
+.info-box {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: royalblue;
+  font-family: 'Quicksand', sans-serif;
+  text-align: left;
+  transition: 0.4s;
+  background: white;
+  z-index: 100000;
+}
+.info-box > p {
+  position: fixed;
+  top: 70%;
+  left: 5%;
+  cursor: pointer;
+  margin: 1%;
+  border-radius: 5px;
+  margin-bottom: 10%;
+  padding: 1%;
+  width: 16%;
+  text-align: center;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px,
+    rgba(0, 0, 0, 0.22) 0px 10px 10px;
+}
+.info-box > p:active {
+  text-decoration: underline;
+}
+
+/* Ask ToDo Window */
+
+.todo-add-task {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  font-family: 'Quicksand', sans-serif;
+  margin-top: -5%;
+}
+.todo-add-task > h1 {
+  font-size: 2.5rem;
+}
+.todo-add-task-1 {
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  padding: 5%;
+  margin-top: -6%;
+}
+.todo-add-task-1 > textarea {
+  height: 100px;
+  font-size: 1rem;
+  margin-bottom: 3%;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: 0.2px;
+  outline: none;
+}
+.todo-add-task-1 > select {
+  outline: none;
+  font-size: 1.2rem;
+  font-family: 'Quicksand', sans-serif;
+}
+.todo-add-task-1 > h3 {
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-decoration: underline;
+  text-align: right;
+  cursor: pointer;
+  margin-top: 0.5%;
+}
+.todo-add-task-1 > h3:active {
+  color: royalblue;
+}
+.todo-add-task-btn {
+  background: royalblue;
+  border: 1px solid royalblue;
+  border-radius: 6px;
+  box-shadow: rgba(0, 0, 0, 0.1) 1px 2px 4px;
+  box-sizing: border-box;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: nunito, roboto, proxima-nova, 'proxima nova', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 10px;
+  min-height: 25px;
+  outline: 0;
+  padding: 12px 14px;
+  text-align: center;
+  text-rendering: geometricprecision;
+  text-transform: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  margin-top: -6%;
+}
+.todo-add-task-btn:hover,
+.todo-add-task-btn:active {
+  background-color: initial;
+  background-position: 0 0;
+  color: royalblue;
+}
+.todo-add-task-btn:active {
+  opacity: 0.5;
+}
