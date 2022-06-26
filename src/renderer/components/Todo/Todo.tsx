@@ -9,6 +9,7 @@ import Main from 'renderer/context/main';
 import axios from 'axios';
 
 type Task = {
+  tid: string;
   task: string;
   date: string;
   priority: string;
@@ -17,13 +18,13 @@ type Task = {
 
 const Todo = () => {
   const context = useContext(Main);
-  const [fetchResults, updateStatus] = useState<boolean>(true);
+  const [shouldFetchResults, updateStatus] = useState<boolean>(true);
   const [flag, toggle] = useState<Record<string, number>>({ index: -1 });
   const [ViewFilterMenu, toggleFilterMenu] = useState<boolean>(false);
   const [taskList, updateList] = useState<Array<Task>>([]);
   const [originalList, updateOrgList] = useState<Array<Task>>([]);
   const [counter, updateCounter] = useState<number>(0);
-  const [canUndo, updateUndoStatus] = useState<Array<Record<string, any>>>([]);
+  const [canUndo, updateUndoStatus] = useState<Record<string, any>>({});
   const [taskHash, updateHash] = useState<Record<string, Task>>({});
   const [pauseCheckList, updatePauseStatus] = useState<boolean>(false);
   const [FilterSettings, updateFilterSettings] = useState<{
@@ -32,6 +33,7 @@ const Todo = () => {
   const [lastSearched, updateLastSearched] = useState<{
     tags: Array<string>;
   }>({ tags: [] });
+  const [deletedTasks, updateDelList] = useState<Array<string>>([]);
 
   const doesTagExist = (element: Array<string>): boolean => {
     const o: Record<string, boolean> = {};
@@ -60,12 +62,11 @@ const Todo = () => {
   };
 
   const fetchData = () => {
-    if (fetchResults && context.AuthInfo.AccessToken) {
-      console.log('fetching...');
+    if (shouldFetchResults && context.AuthInfo.AccessToken) {
       axios
         .get(`${context.URI}/Todos`, context.getAuthHeaders())
         .then((response) => {
-          console.log(response.data);
+          console.log('=> ', response.data);
           updateList(response.data);
           updateStatus(false);
         })
@@ -75,16 +76,36 @@ const Todo = () => {
     }
   };
 
+  const deleteTasksCompletely = (tid: string): void => {
+    axios
+      .delete(`${context.URI}/remove/${tid}`, context.getAuthHeaders())
+      .then((response) => console.log(response.data))
+      .catch((err) => {
+        context.RefreshAccessToken(); //TODO: It doesn't seemingly work currently;
+      });
+  };
+
+  const isTaskUnderDeletionProcess = (tid: string): boolean => {
+    return canUndo[tid] === true;
+  };
+
+  const removeTask = (tid: string): void => {
+    const tasks = taskList;
+    for (let idx = 0; idx < tasks.length; idx++) {
+      if (tasks[idx].tid === tid) {
+        tasks.splice(idx, 1);
+        deleteTasksCompletely(tid);
+        toggle({ index: idx });
+        break;
+      }
+    }
+    updateList(tasks);
+    updateCounter((counter + 1) % 2);
+  };
+
   useEffect(() => {
     if (originalList.length < taskList.length) {
       updateOrgList(taskList);
-    }
-    if (Object.keys(taskHash).length < taskList.length) {
-      const o: Record<string, any> = taskHash || {};
-      taskList.forEach((item: Task): any => {
-        o[item.date] = item;
-      });
-      updateHash(o);
     }
     initiateSearchOperation();
     fetchData();
@@ -162,12 +183,16 @@ const Todo = () => {
             {getDate()}
             <h3
               style={{
-                visibility: originalList.length === 0 ? 'hidden' : 'visible',
+                visibility:
+                  originalList.length === 0 && !shouldFetchResults
+                    ? 'hidden'
+                    : 'visible',
                 pointerEvents: originalList.length === 0 ? 'none' : 'all',
+                textDecoration: shouldFetchResults ? 'none' : 'underline',
               }}
               onClick={() => toggleFilterMenu(true)}
             >
-              Filter by tags?
+              {!shouldFetchResults ? 'Filter by tags?' : 'Loading...'}
             </h3>
           </div>
         </div>
@@ -185,81 +210,71 @@ const Todo = () => {
               <img src={TodoImage} alt="" className="todo-img" />
             </div>
           ) : (
-            [...new Set(taskList)].map(
-              (
-                item: Record<string, string | Array<string>>,
-                index: number
-              ): any => {
-                return (
-                  <div
-                    className="todo-card"
-                    key={uuid()}
+            [...new Set(taskList)].map((item: Task, index: number): any => {
+              return (
+                <div
+                  className="todo-card"
+                  key={uuid()}
+                  style={{
+                    transform: `translateX(${flag.index === index ? 110 : 0}%)`,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={canUndo[item.tid] === true}
+                    onChange={(): void => {
+                      const o = canUndo;
+                      const tid = item.tid;
+                      if (o[tid]) {
+                        o[tid] = false;
+                      } else {
+                        o[tid] = true;
+                      }
+                      updateUndoStatus(o);
+                      updateCounter((counter + 1) % 2);
+                      setTimeout(() => {
+                        //The user has only 2 secs to change their decision.
+                        if (!canUndo[tid]) return;
+                        delete canUndo[tid];
+                        removeTask(tid);
+                      }, 2000);
+                    }}
+                  />
+                  <h3
                     style={{
-                      transform: `translateX(${
-                        flag.index === index ? 110 : 0
-                      }%)`,
+                      textDecoration: isTaskUnderDeletionProcess(item.tid)
+                        ? 'line-through'
+                        : 'none',
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      disabled={pauseCheckList}
-                      onClick={(): void => {
-                        if (pauseCheckList) return;
-                        toggle({ index: flag.index === index ? -1 : index });
-                        let undo = canUndo;
-                        undo.push({ id: item.date });
-                        updateUndoStatus(undo);
-                        const list = taskList;
-                        const id = taskList[index].date;
-                        list.splice(index, 1);
-                        updateList(list);
-                        toggle({ index: -1 });
-                        updatePauseStatus(true);
-                        setTimeout(() => {
-                          const tasks = taskHash;
-                          delete tasks[id];
-                          undo = canUndo;
-                          for (let idx = 0; idx < undo.length; idx++) {
-                            if (undo[idx].id === id) {
-                              undo.splice(idx, 1);
-                              break;
+                    {item.task}
+                  </h3>
+                  <img
+                    src={EditIcon}
+                    alt="edit"
+                    onClick={(): void => {
+                      (window as any)['electron'].ipcRenderer.send(
+                        'todo:open-add-task-window',
+                        { ...item, AuthInfo: context.AuthInfo }
+                      );
+                      (window as any)['electron'].ipcRenderer.once(
+                        'todo:addTask',
+                        (data: Task) => {
+                          const list = taskList;
+                          for (let idx = 0; idx < list.length; idx++) {
+                            if (list[idx].tid === data.tid) {
+                              list[idx] = data;
                             }
                           }
-                          updateHash(tasks);
-                          updateUndoStatus(undo);
+                          updateList(list);
                           updateCounter((counter + 1) % 2);
-                          updatePauseStatus(false);
-                        }, 1500);
-                      }}
-                    />
-                    <h3>{item.task}</h3>
-                    <img
-                      src={EditIcon}
-                      alt="edit"
-                      onClick={(): void => {
-                        (window as any)['electron'].ipcRenderer.send(
-                          'todo:open-add-task-window',
-                          { ...item, AuthInfo: context.AuthInfo }
-                        );
-                        (window as any)['electron'].ipcRenderer.once(
-                          'todo:addTask',
-                          (data: Task) => {
-                            const list = taskList;
-                            for (let idx = 0; idx < list.length; idx++) {
-                              if (list[idx].date === data.date) {
-                                list[idx] = data;
-                              }
-                            }
-                            updateList(list);
-                            updateCounter((counter + 1) % 2);
-                          }
-                        );
-                      }}
-                    />
-                  </div>
-                );
-              }
-            )
+                        }
+                      );
+                    }}
+                  />
+                </div>
+              );
+            })
           )}
           <button
             className="todo-floater-btn"
@@ -268,7 +283,11 @@ const Todo = () => {
               (window as any)['electron'].ipcRenderer.send(
                 'todo:open-add-task-window',
                 {
-                  AuthInfo: { ...context.AuthInfo, status: false },
+                  AuthInfo: {
+                    ...context.AuthInfo,
+                    status: true,
+                    email: sessionStorage.getItem('email'),
+                  },
                 }
               );
               (window as any)['electron'].ipcRenderer.once(
@@ -284,36 +303,6 @@ const Todo = () => {
           >
             +
           </button>
-          <div
-            className="info-box"
-            style={{
-              transition: '0.5s ease-in-out',
-            }}
-          >
-            {canUndo.map((item, index): any => {
-              return (
-                <p
-                  style={{
-                    top: `${80 - index * 2}%`,
-                  }}
-                  key={uuid()}
-                  onClick={(): void => {
-                    const task = [taskHash[item.id]];
-                    setTimeout(() => {
-                      const list = [...task, ...taskList];
-                      list.sort((a: any, b: any): number => {
-                        return new Date(a.date) > new Date(b.date) ? 1 : -1;
-                      });
-                      updateList(list);
-                      updatePauseStatus(false);
-                    }, 1000);
-                  }}
-                >
-                  Undo
-                </p>
-              );
-            })}
-          </div>
         </div>
       </div>
     </div>

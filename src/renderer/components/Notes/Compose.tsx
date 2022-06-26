@@ -1,13 +1,16 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
-import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router-dom';
+import Main from 'renderer/context/main';
 import TagFilter from '../Util/TagFilter';
 import './Notes.css';
 
 const Compose = () => {
   const { type } = useParams();
+  const context = useContext(Main);
 
   const [description, updateDescription] = useState<string>('');
   const [ViewFilterMenu, toggleFilterMenu] = useState<boolean>(false);
@@ -63,14 +66,29 @@ const Compose = () => {
               className="notes-add-task-btn"
               disabled={ViewFilterMenu}
               onClick={() => {
-                (window as any)?.electron.ipcRenderer.send(
-                  'notes:compose.addNote',
-                  {
-                    description,
-                    tags: FilterSettings.tags,
-                    date: new Date().toISOString(),
-                  }
-                );
+                const dataObject = {
+                  description,
+                  tags: FilterSettings.tags,
+                  date: new Date().toISOString(),
+                };
+                axios
+                  .post(
+                    `${context.URI}/Notes/add`,
+                    dataObject,
+                    context.getAuthHeaders()
+                  )
+                  .then((response) => {
+                    if (response.data === 'Done!') {
+                      (window as any)?.electron.ipcRenderer.send(
+                        'notes:compose.addNote',
+                        dataObject
+                      );
+                    }
+                    throw new Error('');
+                  })
+                  .catch((err) => {
+                    context.RefreshAccessToken();
+                  });
               }}
             >
               Done

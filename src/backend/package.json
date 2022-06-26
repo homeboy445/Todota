@@ -1,0 +1,24 @@
+{
+  "name": "todota",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node .",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "tsc": "^2.0.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/jsonwebtoken": "^8.5.8",
+    "@types/uuid": "^8.3.4",
+    "ts-node-dev": "^1.1.8"
+  }
+}

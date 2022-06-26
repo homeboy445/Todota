@@ -7,9 +7,10 @@ const Login = () => {
   const context = useContext(Main);
   const [email, updateEmail] = useState('');
   const [password, updatePassword] = useState('');
+  const [disableButton, toggleButton] = useState(false);
 
   return (
-    <div className="login-main">
+    <form className="login-main">
       <h1>Login</h1>
       <div className="login-input">
         <input
@@ -29,10 +30,12 @@ const Login = () => {
         <h2>Forgot password?</h2>
         <button
           type="submit"
+          disabled={disableButton}
           onClick={() => {
             if (!email.trim() || !password.trim()) {
               return;
             }
+            toggleButton(true);
             axios
               .post(`${context.URI}/login`, {
                 email: email.trim(),
@@ -54,13 +57,15 @@ const Login = () => {
                   RefreshToken: response.data.RefreshToken,
                 });
               })
-              .catch((err) => {});
+              .catch((err) => {
+                toggleButton(false);
+              });
           }}
         >
           Sign-In
         </button>
       </div>
-    </div>
+    </form>
   );
 };
 

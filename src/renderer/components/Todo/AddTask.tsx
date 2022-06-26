@@ -18,16 +18,23 @@ const AddTask = () => {
   });
   const [ViewTagFilterMenu, toggleFilterMenu] = useState<boolean>(false);
   const [counter, updateCounter] = useState<number>(0);
+  const [disableButton, toggleButton] = useState<boolean>(false);
+  const [editMode, toggleEditMode] = useState<{
+    status: boolean;
+    additional: Record<string, string>;
+  }>({ status: false, additional: {} });
 
   useEffect((): any => {
     (window as any).electron.ipcRenderer.on(
       'todo:addTask.edit',
       (data: any): void => {
+        console.log(data);
         if (typeof data === 'object') {
           if ('task' in data) {
             changeDescription(data.task);
             updatePriority(data.priority);
             updateTime(data.date);
+            toggleEditMode({ status: true, additional: { tid: data.tid } });
           }
           context.UpdateAuthInfo({
             status: data.AuthInfo.status,
@@ -36,6 +43,7 @@ const AddTask = () => {
           });
           sessionStorage.setItem('AccessToken', data.AuthInfo.AccessToken);
           sessionStorage.setItem('RefreshToken', data.AuthInfo.RefreshToken);
+          sessionStorage.setItem('email', data.AuthInfo.email);
         }
       }
     );
@@ -87,28 +95,37 @@ const AddTask = () => {
         </div>
         <button
           type="button"
+          disabled={ViewTagFilterMenu || disableButton}
           className="todo-add-task-btn"
           onClick={() => {
             if (description.trim() === '' || priority === 'null') {
               return;
             }
+            toggleButton(true);
             const Task = {
+              tid: editMode.additional?.tid,
               task: description,
               priority,
               date: taskTime || new Date().toISOString(),
               tags: FilterSettings.tags,
             };
             axios
-              .post(`${context.URI}/Todos/add`, Task, context.getAuthHeaders())
+              .post(
+                `${context.URI}/Todos/${editMode ? 'update' : 'add'}`,
+                Task,
+                context.getAuthHeaders()
+              )
               .then((response) => {
                 return (window as any).electron.ipcRenderer.send(
                   'todo:addTodo',
                   Task
                 );
               })
-              .catch((err) => {});
+              .catch((err) => {
+                toggleButton(false);
+                context.RefreshAccessToken();
+              });
           }}
-          disabled={ViewTagFilterMenu}
         >
           Done
         </button>

@@ -15,7 +15,7 @@ import Todo from './components/Todo/Todo';
 import Main from './context/main';
 
 export default function App() {
-  const uri = 'https://todota353.herokuapp.com';
+  const uri = 'http://localhost:3005';
   const [AuthInfo, updateAuthInfo] = useState<{
     status: boolean;
     AccessToken: string | null;
@@ -25,6 +25,7 @@ export default function App() {
     AccessToken: null,
     RefreshToken: null,
   });
+  const [WindowType, changeWindowType] = useState<string>('parent');
   const [counter, updateCounter] = useState<number>(0);
 
   const UpdateAuthInfo = (data: {
@@ -46,10 +47,11 @@ export default function App() {
     axios
       .post(`${uri}/refresh`, {
         email: sessionStorage.getItem('email'),
-        RefreshToken: AuthInfo.RefreshToken,
+        RefreshToken: sessionStorage.getItem('RefreshToken'),
       })
       .then((response) => {
         if (response.data.RefreshToken) {
+          console.log('Refreshing Token...');
           sessionStorage.setItem('AccessToken', response.data.AccessToken);
           sessionStorage.setItem('RefreshToken', response.data.RefreshToken);
           updateAuthInfo({
@@ -58,21 +60,30 @@ export default function App() {
           });
           return updateCounter((counter + 1) % 2);
         }
-        throw new Error();
+        throw new Error(response.toString());
       })
       .catch((err) => {
+        console.log('ERROR: ', err);
         updateAuthInfo({
           status: false,
           AccessToken: null,
           RefreshToken: null,
         });
         sessionStorage.clear();
-        updateCounter((counter + 1) % 2);
+        (window as any).electron.ipcRenderer.send('session-expired', true);
       });
   };
 
   useEffect(() => {
     const AToken = sessionStorage.getItem('AccessToken');
+    (window as any).electron.ipcRenderer.once('window-type', (data: string) => {
+      console.log('WINDOW-TYPE: ', data);
+      changeWindowType(data);
+      updateAuthInfo({
+        ...AuthInfo,
+        status: data === 'parent' ? AuthInfo.status : true,
+      });
+    });
     if (!AuthInfo.status && AToken) {
       updateAuthInfo({
         status: true,
@@ -80,10 +91,10 @@ export default function App() {
         RefreshToken: sessionStorage.getItem('RefreshToken'),
       });
       updateCounter((counter + 1) % 2);
-    } else if (AuthInfo.status && !AToken) {
+    } else if (AuthInfo.status && !AToken && WindowType === 'parent') {
       updateAuthInfo({ ...AuthInfo, status: false });
       updateCounter((counter + 1) % 2);
-    } else if (!AuthInfo.AccessToken) {
+    } else if (AuthInfo.AccessToken !== AToken) {
       updateAuthInfo({
         ...AuthInfo,
         AccessToken: AToken,
@@ -91,7 +102,7 @@ export default function App() {
       });
       updateCounter((counter + 1) % 2);
     }
-  }, [AuthInfo, AuthInfo.status, AuthInfo.AccessToken, counter]);
+  }, [AuthInfo, WindowType, counter]);
 
   return (
     <Main.Provider
@@ -110,17 +121,21 @@ export default function App() {
       }}
     >
       <Router>
-        <Routes>
-          <Route path="/" element={AuthInfo.status ? <Todo /> : <Login />} />
-          {AuthInfo.status ? (
+        {AuthInfo.status ? (
+          <Routes>
+            <Route path="/" element={<Todo />} />
+            <Route path="todo:addTodo" element={<AddTask />} />
+            <Route path="notes" element={<Notes />} />
+            <Route path="notes:compose/:type" element={<Compose />} />
+            <Route path="secrets" element={<Secrets />} />
             <Route path="*" element={<Navigate to="/" replace />} />
-          ) : null}
-          <Route path="todo:addTodo" element={<AddTask />} />
-          <Route path="notes" element={<Notes />} />
-          <Route path="notes:compose/:type" element={<Compose />} />
-          <Route path="secrets" element={<Secrets />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        ) : (
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        )}
       </Router>
     </Main.Provider>
   );

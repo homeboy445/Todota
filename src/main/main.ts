@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import Server from '../backend/src/index';
 
 export default class AppUpdater {
   constructor() {
@@ -26,6 +27,7 @@ export default class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 let addTodoTaskWindow: BrowserWindow | null = null;
 let composeNoteWindow: BrowserWindow | null = null;
+const SERVER = new Server();
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -63,6 +65,13 @@ const getAssetPath = (...paths: string[]): string => {
     ? path.join(process.resourcesPath, 'assets')
     : path.join(__dirname, '../../assets');
   return path.join(RESOURCES_PATH, ...paths);
+};
+
+const broadCastWindowType = (window: BrowserWindow, type: string): void => {
+  if (!window) return;
+  setTimeout(() => {
+    window.webContents.send('window-type', type);
+  }, 1000);
 };
 
 const createWindow = async () => {
@@ -215,7 +224,15 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
+
+  broadCastWindowType(mainWindow, 'parent');
 };
+
+ipcMain.on('session-expired', (err, data) => {
+  addTodoTaskWindow?.close();
+  composeNoteWindow?.close();
+  mainWindow?.loadURL('/');
+});
 
 const createAddTaskWindow = () => {
   addTodoTaskWindow = new BrowserWindow({
@@ -247,6 +264,8 @@ const createAddTaskWindow = () => {
   addTodoTaskWindow.on('closed', () => {
     addTodoTaskWindow = null;
   });
+
+  broadCastWindowType(addTodoTaskWindow, 'child');
 };
 
 ipcMain.on('todo:open-add-task-window', (event, arg) => {
@@ -295,6 +314,8 @@ const createComposeNoteWindow = (type: string) => {
   composeNoteWindow.on('closed', () => {
     composeNoteWindow = null;
   });
+
+  broadCastWindowType(composeNoteWindow, 'child');
 };
 
 ipcMain.on('notes:compose', (event, data) => {
@@ -332,6 +353,7 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+    SERVER.run(); // Running the Todota Backend Server!
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the

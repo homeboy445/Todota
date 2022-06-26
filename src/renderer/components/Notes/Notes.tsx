@@ -2,11 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { v4 as uuid } from 'uuid';
+import Main from 'renderer/context/main';
 import Filter from './Filter';
 import NoteIcon from '../../assets/note.jpg';
 import './Notes.css';
+import axios from 'axios';
 
 type Note = { description: string; tags: Array<string>; date: string };
 type FilterSettings = {
@@ -15,6 +17,7 @@ type FilterSettings = {
 };
 
 const Notes = () => {
+  const context = useContext(Main);
   const [notesList, updateNotesList] = useState<Array<Note>>([
     /*     {
       description:
@@ -79,13 +82,6 @@ const Notes = () => {
       return false;
     }
     const noteDate = new Date(date);
-    console.log(
-      noteDate.toLocaleDateString(),
-      ' ',
-      from.toLocaleDateString(),
-      ' ',
-      to.toLocaleDateString()
-    );
     return noteDate >= from && noteDate <= to;
   };
 
@@ -125,13 +121,7 @@ const Notes = () => {
     updateCounter((counter + 1) % 2);
   };
 
-  useEffect(() => {
-    if (
-      originalList === null ||
-      (originalList || []).length < notesList.length
-    ) {
-      updateOrgList(notesList);
-    }
+  const initiateSearchOperation = (): void => {
     if (
       searchQuery.trim() !== '' ||
       FilterSettings.tags.length !== 0 ||
@@ -161,15 +151,6 @@ const Notes = () => {
       const notes = originalList || [];
       const result: Array<Note> = [];
       notes.forEach((item: Note): void => {
-        console.log(
-          (item.description.includes(searchQuery),
-          ' ',
-          searchQuery.trim() !== ''),
-          ' ',
-          doesTagExist(item.tags),
-          ' ',
-          doesExistInBetween(item.date)
-        );
         if (
           (item.description.includes(searchQuery) &&
             searchQuery.trim() !== '') ||
@@ -187,6 +168,28 @@ const Notes = () => {
     } else if ((originalList || []).length !== notesList.length) {
       updateNotesList(originalList || []);
     }
+  };
+
+  const fetchNotesFromAPI = () => {
+    axios
+      .get(`${context.URI}/Notes/`, context.getAuthHeaders())
+      .then((response) => {
+        return updateNotesList(response.data);
+      })
+      .catch((err) => {
+        context.RefreshAccessToken();
+      });
+  };
+
+  useEffect(() => {
+    if (
+      originalList === null ||
+      (originalList || []).length < notesList.length
+    ) {
+      updateOrgList(notesList);
+    }
+    initiateSearchOperation();
+    fetchNotesFromAPI();
   }, [
     FilterSettings.duration.from,
     FilterSettings.duration.to,
