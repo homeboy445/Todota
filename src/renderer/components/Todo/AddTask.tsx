@@ -36,7 +36,7 @@ const AddTask = () => {
             updateTime(data.date);
             toggleEditMode({ status: true, additional: { tid: data.tid } });
           }
-          context.UpdateAuthInfo({
+          context.UpdateAuthInfoState({
             status: data.AuthInfo.status,
             AccessToken: data.AuthInfo.AccessToken,
             RefreshToken: data.AuthInfo.RefreshToken,
@@ -101,6 +101,7 @@ const AddTask = () => {
             if (description.trim() === '' || priority === 'null') {
               return;
             }
+            console.log('Clicked!');
             toggleButton(true);
             const Task = {
               tid: editMode.additional?.tid,
@@ -109,6 +110,7 @@ const AddTask = () => {
               date: taskTime || new Date().toISOString(),
               tags: FilterSettings.tags,
             };
+            // eslint-disable-next-line promise/catch-or-return
             axios
               .post(
                 `${context.URI}/Todos/${editMode ? 'update' : 'add'}`,
@@ -116,14 +118,24 @@ const AddTask = () => {
                 context.getAuthHeaders()
               )
               .then((response) => {
-                return (window as any).electron.ipcRenderer.send(
-                  'todo:addTodo',
-                  Task
-                );
+                console.log('HERE...', response.data);
+                // eslint-disable-next-line promise/always-return
+                if (response.data !== 'Done!') {
+                  throw new Error(response as any);
+                }
+                console.log('...okokok');
+
+                // return (window as any).electron.ipcRenderer.send(
+                //   'todo:addTodo',
+                //   Task
+                // );
               })
               .catch((err) => {
-                toggleButton(false);
+                console.log(err);
                 context.RefreshAccessToken();
+              })
+              .finally(() => {
+                toggleButton(false);
               });
           }}
         >

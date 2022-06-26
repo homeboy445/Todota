@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const db_1 = require("../../config/db");
+const db_1 = require("../../database/db");
 const uuid_1 = require("uuid");
 const auth_1 = __importDefault(require("../../middleware/auth"));
 const router = express_1.default.Router();
@@ -21,7 +21,7 @@ router.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     yield db_1.Database.connect();
     (0, auth_1.default)(req, res, next);
 }));
-router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { userId } = req.body;
     const data = [];
@@ -38,35 +38,35 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.post("/add", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _b;
     const { description, tags, date, userId } = req.body;
     try {
         yield ((_b = db_1.Database.db.Notes) === null || _b === void 0 ? void 0 : _b.insertOne({
             userId,
-            description: description || "",
+            description: description || '',
             tags: tags || [],
             date: date || new Date().toISOString(),
             nid: (0, uuid_1.v4)(),
         }));
-        res.json("Done!");
+        res.json('Done!');
     }
     catch (e) {
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.post("/update", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     const { nid, description, tags, date, userId } = req.body;
     const obj = { nid };
     if (description)
-        obj["description"] = description;
+        obj['description'] = description;
     if (tags)
-        obj["tags"] = tags;
+        obj['tags'] = tags;
     if (date)
-        obj["date"] = date;
+        obj['date'] = date;
     if (Object.keys(obj).length <= 2) {
-        return res.status(400).json("Invalid request!");
+        return res.status(400).json('Invalid request!');
     }
     try {
         yield ((_c = db_1.Database.db.Notes) === null || _c === void 0 ? void 0 : _c.updateOne({
@@ -75,13 +75,13 @@ router.post("/update", (req, res) => __awaiter(void 0, void 0, void 0, function*
         }, {
             $set: obj,
         }));
-        res.json("Done!");
+        res.json('Done!');
     }
     catch (e) {
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.get("/remove/:nid", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/remove/:nid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _d;
     const { nid } = req.params;
     const { userId } = req.body;
@@ -90,18 +90,18 @@ router.get("/remove/:nid", (req, res) => __awaiter(void 0, void 0, void 0, funct
             nid: nid,
             userId,
         }));
-        res.json("Done!");
+        res.json('Done!');
     }
     catch (e) {
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.delete("/removeAll", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete('/removeAll', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _e;
     const { userId } = req.body;
     try {
         yield ((_e = db_1.Database.db.Notes) === null || _e === void 0 ? void 0 : _e.deleteMany({ userId }));
-        res.json("Done!");
+        res.json('Done!');
     }
     catch (e) {
         res.status(500).json("Something's wrong, please try again!");

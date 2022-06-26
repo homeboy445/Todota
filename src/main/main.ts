@@ -12,7 +12,7 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
+// import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import Server from '../backend/src/index';
 
@@ -109,6 +109,17 @@ const createWindow = async () => {
   });
 
   const MainMenu = Menu.buildFromTemplate([
+    {
+      label: 'User',
+      submenu: [
+        {
+          label: 'log out',
+          click: () => {
+            mainWindow?.webContents?.send('log_out');
+          },
+        },
+      ],
+    },
     {
       label: 'Navigate',
       submenu: [
@@ -280,6 +291,7 @@ ipcMain.on('todo:open-add-task-window', (event, arg) => {
 // addTodo: received task data from AddTask window
 // addTask: send to Todo window
 ipcMain.on('todo:addTodo', (event, arg) => {
+  console.log('>>> ', arg);
   addTodoTaskWindow?.close();
   mainWindow?.webContents.send('todo:addTask', arg);
 });

@@ -29,15 +29,14 @@ class DbUtil {
         });
     }
 }
-// Singleton Architecture for managing the Database efficiently;
 class Database extends DbUtil {
     static connect() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield (Database === null || Database === void 0 ? void 0 : Database.close()); // Close the session if it's open;
+            yield Database.close(); // Close the session if it's open;
             // NOTE: Make sure to call connect every time you're upto performing any DB operation as it session based;
-            Database.url = process.env.URI || '';
-            Database.client = new mongodb_1.MongoClient(Database.url);
             try {
+                Database.url = process.env.URI || '';
+                Database.client = new mongodb_1.MongoClient(Database.url);
                 yield Database.client.connect();
                 const db = Database.client.db('Todota');
                 Database.db = { Users: null, Todos: null, Notes: null, Secrets: null };
@@ -46,20 +45,16 @@ class Database extends DbUtil {
                 Database.db.Notes = db.collection('Notes');
                 Database.db.Secrets = db.collection('Secrets');
                 console.log('Database connected successfully!');
-                setTimeout(() => __awaiter(this, void 0, void 0, function* () {
-                    yield Database.close();
-                }), 20 * 1000); // So that the DB's instance gets closed automatically in about 20sec!
             }
             catch (e) {
-                console.error(e);
+                console.error('>> ', e);
             }
         });
     }
     static close() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            yield ((_a = Database.client) === null || _a === void 0 ? void 0 : _a.close());
-            console.log('Database disconnected!');
+            return yield ((_a = Database.client) === null || _a === void 0 ? void 0 : _a.close());
         });
     }
 }

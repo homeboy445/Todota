@@ -9,7 +9,7 @@ import { WithId } from 'mongodb';
 import TodoRouter from './routes/Todo';
 import NotesRouter from './routes/Notes';
 import SecretsRouter from './routes/Secrets';
-import { Database } from '../config/db';
+import { Database } from '../database/db';
 import Util from '../utility/util';
 
 export default class Server {
@@ -23,7 +23,7 @@ export default class Server {
     this.app.use(express.json());
     this.app.use(cors());
     this.app.use((req: any, res: any, next: any) => {
-      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Origin', '*'); // Change this if possible!
       // res.header('Access-Control-Allow-Origin', 'http://localhost:1212/login');
       next();
     });

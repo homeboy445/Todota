@@ -3,7 +3,7 @@ import React from 'react';
 const Main = React.createContext<{
   AuthInfo: { status: boolean; AccessToken: string | null };
   URI: string;
-  UpdateAuthInfo: (data: {
+  UpdateAuthInfoState: (data: {
     status: boolean;
     AccessToken: string | null;
     RefreshToken: string | null;

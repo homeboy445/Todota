@@ -20,7 +20,7 @@ class DbUtil {
     });
   }
 }
-// Singleton Architecture for managing the Database efficiently;
+
 export class Database extends DbUtil {
   static client: MongoClient;
 
@@ -36,11 +36,11 @@ export class Database extends DbUtil {
   static util: DbUtil;
 
   static async connect() {
-    await Database?.close(); // Close the session if it's open;
+    await Database.close(); // Close the session if it's open;
     // NOTE: Make sure to call connect every time you're upto performing any DB operation as it session based;
-    Database.url = process.env.URI || '';
-    Database.client = new MongoClient(Database.url);
     try {
+      Database.url = process.env.URI || '';
+      Database.client = new MongoClient(Database.url);
       await Database.client.connect();
       const db = Database.client.db('Todota');
       Database.db = { Users: null, Todos: null, Notes: null, Secrets: null };
@@ -49,16 +49,16 @@ export class Database extends DbUtil {
       Database.db.Notes = db.collection('Notes');
       Database.db.Secrets = db.collection('Secrets');
       console.log('Database connected successfully!');
-      setTimeout(async () => {
-        await Database.close();
-      }, 20 * 1000); // So that the DB's instance gets closed automatically in about 20sec!
     } catch (e) {
-      console.error(e);
+      console.error('>> ', e);
     }
   }
 
   static async close() {
-    await Database.client?.close();
-    console.log('Database disconnected!');
+    return await Database.client?.close();
+    // setTimeout(async () => {
+    //   await Database.client?.close();
+    //   console.log('Database disconnected!');
+    // }, 60 * 1000); // So that the DB's instance gets closed automatically in about 60 seconds!
   }
 }

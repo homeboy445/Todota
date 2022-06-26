@@ -28,7 +28,12 @@ export default function App() {
   const [WindowType, changeWindowType] = useState<string>('parent');
   const [counter, updateCounter] = useState<number>(0);
 
-  const UpdateAuthInfo = (data: {
+  const ShouldCheckAuthStatus = (): boolean => {
+    const url = window.location.href;
+    return !(url.includes('todo:addTodo') || url.includes('notes:compose'));
+  };
+
+  const UpdateAuthInfoState = (data: {
     status: boolean;
     AccessToken: string | null;
     RefreshToken: string | null;
@@ -75,32 +80,37 @@ export default function App() {
   };
 
   useEffect(() => {
-    const AToken = sessionStorage.getItem('AccessToken');
-    (window as any).electron.ipcRenderer.once('window-type', (data: string) => {
-      console.log('WINDOW-TYPE: ', data);
-      changeWindowType(data);
-      updateAuthInfo({
-        ...AuthInfo,
-        status: data === 'parent' ? AuthInfo.status : true,
-      });
+    (window as any)?.electron?.ipcRenderer?.once('log_out', () => {
+      sessionStorage.clear();
+      window.location.href = '/';
     });
-    if (!AuthInfo.status && AToken) {
-      updateAuthInfo({
-        status: true,
-        AccessToken: AToken,
-        RefreshToken: sessionStorage.getItem('RefreshToken'),
-      });
-      updateCounter((counter + 1) % 2);
-    } else if (AuthInfo.status && !AToken && WindowType === 'parent') {
-      updateAuthInfo({ ...AuthInfo, status: false });
-      updateCounter((counter + 1) % 2);
-    } else if (AuthInfo.AccessToken !== AToken) {
-      updateAuthInfo({
-        ...AuthInfo,
-        AccessToken: AToken,
-        RefreshToken: sessionStorage.getItem('RefreshToken'),
-      });
-      updateCounter((counter + 1) % 2);
+    if (ShouldCheckAuthStatus()) {
+      const AToken = sessionStorage.getItem('AccessToken');
+      (window as any).electron.ipcRenderer.once(
+        'window-type',
+        (data: string) => {
+          changeWindowType(data);
+          UpdateAuthInfoState({
+            ...AuthInfo,
+            status: data === 'parent' ? AuthInfo.status : true,
+          });
+        }
+      );
+      if (!AuthInfo.status && AToken) {
+        UpdateAuthInfoState({
+          status: true,
+          AccessToken: AToken,
+          RefreshToken: sessionStorage.getItem('RefreshToken'),
+        });
+      } else if (AuthInfo.status && !AToken && WindowType === 'parent') {
+        UpdateAuthInfoState({ ...AuthInfo, status: false });
+      } else if (AuthInfo.AccessToken !== AToken) {
+        UpdateAuthInfoState({
+          ...AuthInfo,
+          AccessToken: AToken,
+          RefreshToken: sessionStorage.getItem('RefreshToken'),
+        });
+      }
     }
   }, [AuthInfo, WindowType, counter]);
 
@@ -109,7 +119,7 @@ export default function App() {
       value={{
         AuthInfo,
         URI: uri,
-        UpdateAuthInfo,
+        UpdateAuthInfoState,
         RefreshAccessToken: UpdateRefreshToken,
         getAuthHeaders: () => {
           return {

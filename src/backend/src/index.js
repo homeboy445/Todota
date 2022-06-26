@@ -22,7 +22,7 @@ const uuid_1 = require("uuid");
 const Todo_1 = __importDefault(require("./routes/Todo"));
 const Notes_1 = __importDefault(require("./routes/Notes"));
 const Secrets_1 = __importDefault(require("./routes/Secrets"));
-const db_1 = require("../config/db");
+const db_1 = require("../database/db");
 const util_1 = __importDefault(require("../utility/util"));
 class Server {
     constructor() {
@@ -32,7 +32,7 @@ class Server {
         this.app.use(express_1.default.json());
         this.app.use((0, cors_1.default)());
         this.app.use((req, res, next) => {
-            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Origin', '*'); // Change this if possible!
             // res.header('Access-Control-Allow-Origin', 'http://localhost:1212/login');
             next();
         });

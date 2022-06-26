@@ -51,7 +51,7 @@ const Login = () => {
                   'RefreshToken',
                   response.data.RefreshToken
                 );
-                return context.UpdateAuthInfo({
+                return context.UpdateAuthInfoState({
                   status: true,
                   AccessToken: response.data.AccessToken,
                   RefreshToken: response.data.RefreshToken,
