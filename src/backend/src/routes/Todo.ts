@@ -1,23 +1,18 @@
 import express from 'express';
 import { Document } from 'bson';
 import { WithId } from 'mongodb';
-import { Database } from '../../database/db';
 import { v4 as uuid } from 'uuid';
-import authenticate from '../../middleware/auth';
+import {
+  CheckAuthAndRetrieveDB,
+  extractDBLinkFromResponse,
+} from '../../middleware/middleware';
 
 const router = express.Router();
-
-router.use(async (req, res, next) => {
-  try {
-    await Database.connect();
-    authenticate(req, res, next);
-  } catch (e) {
-    res.sendStatus(500);
-  }
-});
+router.use(CheckAuthAndRetrieveDB);
 
 router.get('/', async (req, res) => {
   const { userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   const data: Array<WithId<Document>> = [];
   try {
     await Database.db.Todos?.find({ userId }).forEach(
@@ -37,9 +32,9 @@ router.get('/', async (req, res) => {
 
 router.post('/add', async (req, res) => {
   const { task, priority, date, tags, userId } = req.body; // NOTE: userId's a custom property which is being saved with JWTificiation;
+  const Database = extractDBLinkFromResponse(res);
   try {
-    console.log('BACKEND: ', task);
-    const data = await Database.db.Todos?.insertOne({
+    await Database.db.Todos?.insertOne({
       tid: uuid(),
       task,
       date: new Date().toISOString() || date,
@@ -56,6 +51,7 @@ router.post('/add', async (req, res) => {
 // eslint-disable-next-line consistent-return
 router.post('/update', async (req, res): Promise<any> => {
   const { tid, task, priority, date, tags, userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   const obj: Record<string, any> = { tid };
   if (task) obj.task = task;
   if (priority) obj.priority = priority;

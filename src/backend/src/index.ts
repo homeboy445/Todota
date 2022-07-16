@@ -9,14 +9,17 @@ import { WithId } from 'mongodb';
 import TodoRouter from './routes/Todo';
 import NotesRouter from './routes/Notes';
 import SecretsRouter from './routes/Secrets';
-import { Database } from '../database/db';
+import Database from '../database/db';
 import Util from '../utility/util';
 
 export default class Server {
   app: any;
 
+  database: Database;
+
   constructor() {
     this.app = express();
+    this.database = new Database();
   }
 
   RegisterMiddleWares() {
@@ -25,6 +28,7 @@ export default class Server {
     this.app.use((req: any, res: any, next: any) => {
       res.header('Access-Control-Allow-Origin', '*'); // Change this if possible!
       // res.header('Access-Control-Allow-Origin', 'http://localhost:1212/login');
+      res.locals.dbLink = this.database;
       next();
     });
     this.app.use('/Todos', TodoRouter);
@@ -55,8 +59,8 @@ export default class Server {
             const userId = uuid();
             const tokens = Util.getJwtToken(jwt, { email, userId });
             let status = true;
-            await Database.connect(); // TODO: Change this to open() maybe?
-            await Database.db.Users?.find().forEach((user) => {
+            await this.database.connect(); // TODO: Change this to open() maybe?
+            await this.database.db.Users?.find().forEach((user) => {
               if (user.email === email) {
                 status = false;
               }
@@ -65,8 +69,7 @@ export default class Server {
               return res.status(405).json('User already exist!');
             }
             const secretKey = crypto.randomBytes(200).toString('base64');
-            await Database.connect(); // TODO: Change this to open() maybe?
-            await Database.db.Users?.insertOne({
+            await this.database.db.Users?.insertOne({
               userId,
               email,
               password: hashedPassword,
@@ -85,9 +88,9 @@ export default class Server {
     this.app.post('/login', async (req: any, res: any): Promise<void> => {
       const { email, password } = req.body;
       try {
-        await Database.connect();
+        await this.database.connect();
         const userData: Record<string, string> =
-          (await Database.db.Users?.findOne({ email })) || {};
+          (await this.database.db.Users?.findOne({ email })) || {};
         if (Object.keys(userData).length === 0) {
           return res.status(401).json("User doesn't exist!");
         }
@@ -99,7 +102,7 @@ export default class Server {
             email,
             userId: userData?.userId,
           });
-          await Database.db.Users?.updateOne(
+          await this.database.db.Users?.updateOne(
             { email },
             {
               $set: { refreshToken: tokens.RefreshToken },
@@ -119,8 +122,8 @@ export default class Server {
       async (req: any, res: any): Promise<void> => {
         const { email, RefreshToken } = req.body;
         try {
-          await Database.connect();
-          const userData = await Database.db.Users?.findOne({ email });
+          await this.database.connect();
+          const userData = await this.database.db.Users?.findOne({ email });
           if (
             userData?.refreshToken !== RefreshToken ||
             !jwt.verify(RefreshToken, process.env.REFRESH_TOKEN_KEY || '')
@@ -128,7 +131,7 @@ export default class Server {
             return res.status(401).json('Error!');
           }
           const tokens = Util.getJwtToken(jwt, email);
-          await Database.db.Users?.updateOne(
+          await this.database.db.Users?.updateOne(
             { email },
             {
               $set: { refreshToken: tokens.RefreshToken },
@@ -150,9 +153,9 @@ export default class Server {
           return res.sendStatus(400);
         }
         try {
-          await Database.connect();
+          await this.database.connect();
           let data: any = {};
-          await Database.db.Users?.find({ email }).forEach(
+          await this.database.db.Users?.find({ email }).forEach(
             (i: WithId<Document>): void => {
               data = i;
             }
@@ -170,9 +173,9 @@ export default class Server {
             // eslint-disable-next-line consistent-return
             async (err, hashedPassword): Promise<void> => {
               if (err) return res.sendStatus(500);
-              await Database.connect();
+              await this.database.connect();
               const SecretKey = crypto.randomBytes(200).toString('base64');
-              await Database.db.Users?.updateOne(
+              await this.database.db.Users?.updateOne(
                 { email },
                 {
                   $set: { password: hashedPassword, SecretKey },
@@ -189,6 +192,7 @@ export default class Server {
   }
 
   run() {
+    this.database.connect();
     this.RegisterMiddleWares();
     this.RegisterRoutes();
     this.app.listen(process.env.PORT || 3005, () => {
@@ -197,3 +201,6 @@ export default class Server {
     });
   }
 }
+
+const server = new Server();
+server.run();

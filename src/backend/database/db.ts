@@ -21,44 +21,52 @@ class DbUtil {
   }
 }
 
-export class Database extends DbUtil {
-  static client: MongoClient;
+export default class Database {
+  connected: Boolean;
 
-  static url: string;
+  client: MongoClient;
 
-  static db: {
+  db: {
     Users: Collection | null;
     Todos: Collection | null;
     Notes: Collection | null;
     Secrets: Collection | null;
   };
 
-  static util: DbUtil;
+  constructor() {
+    this.connected = false;
+    this.client = new MongoClient(process.env.URI || '');
+    this.db = {
+      Users: null,
+      Todos: null,
+      Notes: null,
+      Secrets: null,
+    };
+  }
 
-  static async connect() {
-    await Database.close(); // Close the session if it's open;
+  async connect() {
+    await this.close(); // Close the session if it's open;
     // NOTE: Make sure to call connect every time you're upto performing any DB operation as it session based;
     try {
-      Database.url = process.env.URI || '';
-      Database.client = new MongoClient(Database.url);
-      await Database.client.connect();
-      const db = Database.client.db('Todota');
-      Database.db = { Users: null, Todos: null, Notes: null, Secrets: null };
-      Database.db.Users = db.collection('Users');
-      Database.db.Todos = db.collection('Todos');
-      Database.db.Notes = db.collection('Notes');
-      Database.db.Secrets = db.collection('Secrets');
+      await this.client.connect();
+      this.connected = true;
+      const db = this.client.db('Todota');
+      this.db.Users = db.collection('Users');
+      this.db.Todos = db.collection('Todos');
+      this.db.Notes = db.collection('Notes');
+      this.db.Secrets = db.collection('Secrets');
       console.log('Database connected successfully!');
     } catch (e) {
       console.error('>> ', e);
     }
   }
 
-  static async close() {
-    return await Database.client?.close();
-    // setTimeout(async () => {
-    //   await Database.client?.close();
-    //   console.log('Database disconnected!');
-    // }, 60 * 1000); // So that the DB's instance gets closed automatically in about 60 seconds!
+  async close() {
+    await this.client?.close();
+    this.connected = false;
+  }
+
+  isConnected() {
+    return this.connected;
   }
 }

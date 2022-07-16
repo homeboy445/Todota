@@ -22,11 +22,12 @@ const uuid_1 = require("uuid");
 const Todo_1 = __importDefault(require("./routes/Todo"));
 const Notes_1 = __importDefault(require("./routes/Notes"));
 const Secrets_1 = __importDefault(require("./routes/Secrets"));
-const db_1 = require("../database/db");
+const db_1 = __importDefault(require("../database/db"));
 const util_1 = __importDefault(require("../utility/util"));
 class Server {
     constructor() {
         this.app = (0, express_1.default)();
+        this.database = new db_1.default();
     }
     RegisterMiddleWares() {
         this.app.use(express_1.default.json());
@@ -34,6 +35,7 @@ class Server {
         this.app.use((req, res, next) => {
             res.header('Access-Control-Allow-Origin', '*'); // Change this if possible!
             // res.header('Access-Control-Allow-Origin', 'http://localhost:1212/login');
+            res.locals.dbLink = this.database;
             next();
         });
         this.app.use('/Todos', Todo_1.default);
@@ -58,8 +60,8 @@ class Server {
                     const userId = (0, uuid_1.v4)();
                     const tokens = util_1.default.getJwtToken(jsonwebtoken_1.default, { email, userId });
                     let status = true;
-                    yield db_1.Database.connect(); // TODO: Change this to open() maybe?
-                    yield ((_a = db_1.Database.db.Users) === null || _a === void 0 ? void 0 : _a.find().forEach((user) => {
+                    yield this.database.connect(); // TODO: Change this to open() maybe?
+                    yield ((_a = this.database.db.Users) === null || _a === void 0 ? void 0 : _a.find().forEach((user) => {
                         if (user.email === email) {
                             status = false;
                         }
@@ -68,8 +70,7 @@ class Server {
                         return res.status(405).json('User already exist!');
                     }
                     const secretKey = crypto_1.default.randomBytes(200).toString('base64');
-                    yield db_1.Database.connect(); // TODO: Change this to open() maybe?
-                    yield ((_b = db_1.Database.db.Users) === null || _b === void 0 ? void 0 : _b.insertOne({
+                    yield ((_b = this.database.db.Users) === null || _b === void 0 ? void 0 : _b.insertOne({
                         userId,
                         email,
                         password: hashedPassword,
@@ -88,8 +89,8 @@ class Server {
             var _c, _d;
             const { email, password } = req.body;
             try {
-                yield db_1.Database.connect();
-                const userData = (yield ((_c = db_1.Database.db.Users) === null || _c === void 0 ? void 0 : _c.findOne({ email }))) || {};
+                yield this.database.connect();
+                const userData = (yield ((_c = this.database.db.Users) === null || _c === void 0 ? void 0 : _c.findOne({ email }))) || {};
                 if (Object.keys(userData).length === 0) {
                     return res.status(401).json("User doesn't exist!");
                 }
@@ -101,7 +102,7 @@ class Server {
                         email,
                         userId: userData === null || userData === void 0 ? void 0 : userData.userId,
                     });
-                    yield ((_d = db_1.Database.db.Users) === null || _d === void 0 ? void 0 : _d.updateOne({ email }, {
+                    yield ((_d = this.database.db.Users) === null || _d === void 0 ? void 0 : _d.updateOne({ email }, {
                         $set: { refreshToken: tokens.RefreshToken },
                     }));
                     return res.json(tokens);
@@ -118,14 +119,14 @@ class Server {
             var _e, _f;
             const { email, RefreshToken } = req.body;
             try {
-                yield db_1.Database.connect();
-                const userData = yield ((_e = db_1.Database.db.Users) === null || _e === void 0 ? void 0 : _e.findOne({ email }));
+                yield this.database.connect();
+                const userData = yield ((_e = this.database.db.Users) === null || _e === void 0 ? void 0 : _e.findOne({ email }));
                 if ((userData === null || userData === void 0 ? void 0 : userData.refreshToken) !== RefreshToken ||
                     !jsonwebtoken_1.default.verify(RefreshToken, process.env.REFRESH_TOKEN_KEY || '')) {
                     return res.status(401).json('Error!');
                 }
                 const tokens = util_1.default.getJwtToken(jsonwebtoken_1.default, email);
-                yield ((_f = db_1.Database.db.Users) === null || _f === void 0 ? void 0 : _f.updateOne({ email }, {
+                yield ((_f = this.database.db.Users) === null || _f === void 0 ? void 0 : _f.updateOne({ email }, {
                     $set: { refreshToken: tokens.RefreshToken },
                 }));
                 res.json(tokens);
@@ -143,9 +144,9 @@ class Server {
                 return res.sendStatus(400);
             }
             try {
-                yield db_1.Database.connect();
+                yield this.database.connect();
                 let data = {};
-                yield ((_g = db_1.Database.db.Users) === null || _g === void 0 ? void 0 : _g.find({ email }).forEach((i) => {
+                yield ((_g = this.database.db.Users) === null || _g === void 0 ? void 0 : _g.find({ email }).forEach((i) => {
                     data = i;
                 }));
                 if (Object.keys(data).length === 0) {
@@ -161,9 +162,9 @@ class Server {
                     var _h;
                     if (err)
                         return res.sendStatus(500);
-                    yield db_1.Database.connect();
+                    yield this.database.connect();
                     const SecretKey = crypto_1.default.randomBytes(200).toString('base64');
-                    yield ((_h = db_1.Database.db.Users) === null || _h === void 0 ? void 0 : _h.updateOne({ email }, {
+                    yield ((_h = this.database.db.Users) === null || _h === void 0 ? void 0 : _h.updateOne({ email }, {
                         $set: { password: hashedPassword, SecretKey },
                     }));
                     res.status(200).json({ SecretKey });
@@ -175,6 +176,7 @@ class Server {
         }));
     }
     run() {
+        this.database.connect();
         this.RegisterMiddleWares();
         this.RegisterRoutes();
         this.app.listen(process.env.PORT || 3005, () => {
@@ -184,3 +186,5 @@ class Server {
     }
 }
 exports.default = Server;
+const server = new Server();
+server.run();

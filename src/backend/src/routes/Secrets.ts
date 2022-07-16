@@ -1,21 +1,19 @@
 import 'dotenv/config';
-import express, { request } from 'express';
+import express from 'express';
 import { WithId, Document } from 'mongodb';
-import { Database } from '../../database/db';
 import jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
-import bcrypt from 'bcryptjs';
-import authenticate from '../../middleware/auth';
+import {
+  CheckAuthAndRetrieveDB,
+  extractDBLinkFromResponse,
+} from '../../middleware/middleware';
 
 const router = express.Router();
-
-router.use(async (req, res, next) => {
-  await Database.connect();
-  authenticate(req, res, next);
-});
+router.use(CheckAuthAndRetrieveDB);
 
 router.get('/', async (req, res) => {
   const { userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   const data: Array<WithId<Document>> = [];
   await Database.db.Secrets?.find({ userId }).forEach(
     (i: WithId<Document>): void | boolean => {
@@ -31,6 +29,7 @@ router.get('/', async (req, res) => {
 
 router.post('/add', async (req, res) => {
   const { key, value, userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   try {
     const jwtData = jwt.sign(value, process.env.SECRET_KEY || '');
     await Database.db.Secrets?.insertOne({
@@ -48,6 +47,7 @@ router.post('/add', async (req, res) => {
 router.get('/remove/:sid', async (req, res) => {
   const { sid } = req.params;
   const { userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   try {
     await Database.db.Secrets?.deleteOne({ sid, userId });
     res.json('Done!');
@@ -58,6 +58,7 @@ router.get('/remove/:sid', async (req, res) => {
 
 router.delete('removeAll', async (req, res) => {
   const { userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   try {
     Database.db.Secrets?.deleteMany({ userId });
     res.json('Done!');

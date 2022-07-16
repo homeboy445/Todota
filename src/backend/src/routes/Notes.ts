@@ -1,18 +1,17 @@
 import express from 'express';
 import { Document, WithId } from 'mongodb';
-import { Database } from '../../database/db';
 import { v4 as uuid } from 'uuid';
-import authenticate from '../../middleware/auth';
+import {
+  CheckAuthAndRetrieveDB,
+  extractDBLinkFromResponse,
+} from '../../middleware/middleware';
 
 const router = express.Router();
-
-router.use(async (req, res, next) => {
-  await Database.connect();
-  authenticate(req, res, next);
-});
+router.use(CheckAuthAndRetrieveDB);
 
 router.get('/', async (req, res) => {
   const { userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   const data: Array<WithId<Document>> = [];
   try {
     await Database.db.Notes?.find({ userId }).forEach(
@@ -31,6 +30,7 @@ router.get('/', async (req, res) => {
 
 router.post('/add', async (req, res) => {
   const { description, tags, date, userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   try {
     await Database.db.Notes?.insertOne({
       userId,
@@ -45,12 +45,13 @@ router.post('/add', async (req, res) => {
   }
 });
 
-router.post('/update', async (req, res) => {
+router.post('/update', async (req, res): Promise<any | void> => {
   const { nid, description, tags, date, userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   const obj: Record<string, string> = { nid };
-  if (description) obj['description'] = description;
-  if (tags) obj['tags'] = tags;
-  if (date) obj['date'] = date;
+  if (description) obj.description = description;
+  if (tags) obj.tags = tags;
+  if (date) obj.date = date;
   if (Object.keys(obj).length <= 2) {
     return res.status(400).json('Invalid request!');
   }
@@ -71,11 +72,12 @@ router.post('/update', async (req, res) => {
 });
 
 router.get('/remove/:nid', async (req, res) => {
+  const Database = extractDBLinkFromResponse(res);
   const { nid } = req.params;
   const { userId } = req.body;
   try {
     await Database.db.Notes?.deleteOne({
-      nid: nid,
+      nid,
       userId,
     });
     res.json('Done!');
@@ -86,6 +88,7 @@ router.get('/remove/:nid', async (req, res) => {
 
 router.delete('/removeAll', async (req, res) => {
   const { userId } = req.body;
+  const Database = extractDBLinkFromResponse(res);
   try {
     await Database.db.Notes?.deleteMany({ userId });
     res.json('Done!');

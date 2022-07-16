@@ -13,25 +13,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const db_1 = require("../../database/db");
 const uuid_1 = require("uuid");
-const auth_1 = __importDefault(require("../../middleware/auth"));
+const middleware_1 = require("../../middleware/middleware");
 const router = express_1.default.Router();
-router.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        yield db_1.Database.connect();
-        (0, auth_1.default)(req, res, next);
-    }
-    catch (e) {
-        res.sendStatus(500);
-    }
-}));
+router.use(middleware_1.CheckAuthAndRetrieveDB);
 router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { userId } = req.body;
+    const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     const data = [];
     try {
-        yield ((_a = db_1.Database.db.Todos) === null || _a === void 0 ? void 0 : _a.find({ userId }).forEach((i) => {
+        yield ((_a = Database.db.Todos) === null || _a === void 0 ? void 0 : _a.find({ userId }).forEach((i) => {
             const record = i;
             delete record.userId;
             // eslint-disable-next-line no-underscore-dangle
@@ -47,9 +39,9 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _b;
     const { task, priority, date, tags, userId } = req.body; // NOTE: userId's a custom property which is being saved with JWTificiation;
+    const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     try {
-        console.log('BACKEND: ', task);
-        const data = yield ((_b = db_1.Database.db.Todos) === null || _b === void 0 ? void 0 : _b.insertOne({
+        yield ((_b = Database.db.Todos) === null || _b === void 0 ? void 0 : _b.insertOne({
             tid: (0, uuid_1.v4)(),
             task,
             date: new Date().toISOString() || date,
@@ -67,6 +59,7 @@ router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     const { tid, task, priority, date, tags, userId } = req.body;
+    const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     const obj = { tid };
     if (task)
         obj.task = task;
@@ -80,7 +73,7 @@ router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function*
         return res.status(400).json('Invalid request!');
     }
     try {
-        yield ((_c = db_1.Database.db.Todos) === null || _c === void 0 ? void 0 : _c.updateOne({ tid, userId }, { $set: obj }));
+        yield ((_c = Database.db.Todos) === null || _c === void 0 ? void 0 : _c.updateOne({ tid, userId }, { $set: obj }));
         res.json('Done!');
     }
     catch (e) {
