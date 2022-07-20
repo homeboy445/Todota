@@ -41,6 +41,7 @@ router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const { task, priority, date, tags, userId } = req.body; // NOTE: userId's a custom property which is being saved with JWTificiation;
     const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     try {
+        console.log('TODO:ADD route called!');
         yield ((_b = Database.db.Todos) === null || _b === void 0 ? void 0 : _b.insertOne({
             tid: (0, uuid_1.v4)(),
             task,

@@ -60,7 +60,6 @@ class Server {
                     const userId = (0, uuid_1.v4)();
                     const tokens = util_1.default.getJwtToken(jsonwebtoken_1.default, { email, userId });
                     let status = true;
-                    yield this.database.connect(); // TODO: Change this to open() maybe?
                     yield ((_a = this.database.db.Users) === null || _a === void 0 ? void 0 : _a.find().forEach((user) => {
                         if (user.email === email) {
                             status = false;
@@ -88,8 +87,8 @@ class Server {
         this.app.post('/login', (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _c, _d;
             const { email, password } = req.body;
+            console.log('Login request received!');
             try {
-                yield this.database.connect();
                 const userData = (yield ((_c = this.database.db.Users) === null || _c === void 0 ? void 0 : _c.findOne({ email }))) || {};
                 if (Object.keys(userData).length === 0) {
                     return res.status(401).json("User doesn't exist!");
@@ -119,7 +118,6 @@ class Server {
             var _e, _f;
             const { email, RefreshToken } = req.body;
             try {
-                yield this.database.connect();
                 const userData = yield ((_e = this.database.db.Users) === null || _e === void 0 ? void 0 : _e.findOne({ email }));
                 if ((userData === null || userData === void 0 ? void 0 : userData.refreshToken) !== RefreshToken ||
                     !jsonwebtoken_1.default.verify(RefreshToken, process.env.REFRESH_TOKEN_KEY || '')) {
@@ -144,7 +142,6 @@ class Server {
                 return res.sendStatus(400);
             }
             try {
-                yield this.database.connect();
                 let data = {};
                 yield ((_g = this.database.db.Users) === null || _g === void 0 ? void 0 : _g.find({ email }).forEach((i) => {
                     data = i;
@@ -162,7 +159,6 @@ class Server {
                     var _h;
                     if (err)
                         return res.sendStatus(500);
-                    yield this.database.connect();
                     const SecretKey = crypto_1.default.randomBytes(200).toString('base64');
                     yield ((_h = this.database.db.Users) === null || _h === void 0 ? void 0 : _h.updateOne({ email }, {
                         $set: { password: hashedPassword, SecretKey },
@@ -184,7 +180,11 @@ class Server {
             console.log("Server's live at PORT", process.env.PORT || 3005);
         });
     }
+    dispose() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.database.close();
+        });
+    }
 }
 exports.default = Server;
-const server = new Server();
-server.run();
+new Server().run();

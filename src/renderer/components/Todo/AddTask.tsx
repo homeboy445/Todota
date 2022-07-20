@@ -31,6 +31,7 @@ const AddTask = () => {
         console.log(data);
         if (typeof data === 'object') {
           if ('task' in data) {
+            console.log('@@ ', data);
             changeDescription(data.task);
             updatePriority(data.priority);
             updateTime(data.date);
@@ -113,22 +114,15 @@ const AddTask = () => {
             // eslint-disable-next-line promise/catch-or-return
             axios
               .post(
-                `${context.URI}/Todos/${editMode ? 'update' : 'add'}`,
+                `${context.URI}/Todos/${editMode.status ? 'update' : 'add'}`,
                 Task,
                 context.getAuthHeaders()
               )
               .then((response) => {
-                console.log('HERE...', response.data);
-                // eslint-disable-next-line promise/always-return
-                if (response.data !== 'Done!') {
-                  throw new Error(response as any);
-                }
-                console.log('...okokok');
-
-                // return (window as any).electron.ipcRenderer.send(
-                //   'todo:addTodo',
-                //   Task
-                // );
+                return (window as any).electron.ipcRenderer.send(
+                  'todo:addTodo',
+                  Task
+                );
               })
               .catch((err) => {
                 console.log(err);

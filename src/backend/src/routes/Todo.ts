@@ -34,6 +34,7 @@ router.post('/add', async (req, res) => {
   const { task, priority, date, tags, userId } = req.body; // NOTE: userId's a custom property which is being saved with JWTificiation;
   const Database = extractDBLinkFromResponse(res);
   try {
+    console.log('TODO:ADD route called!');
     await Database.db.Todos?.insertOne({
       tid: uuid(),
       task,

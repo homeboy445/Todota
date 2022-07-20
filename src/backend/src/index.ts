@@ -22,7 +22,7 @@ export default class Server {
     this.database = new Database();
   }
 
-  RegisterMiddleWares() {
+  private RegisterMiddleWares() {
     this.app.use(express.json());
     this.app.use(cors());
     this.app.use((req: any, res: any, next: any) => {
@@ -36,7 +36,7 @@ export default class Server {
     this.app.use('/Secrets', SecretsRouter);
   }
 
-  RegisterRoutes() {
+  private RegisterRoutes() {
     this.app.get('/', (req: any, res: any) => {
       res.json("Server's live!");
     });
@@ -59,7 +59,6 @@ export default class Server {
             const userId = uuid();
             const tokens = Util.getJwtToken(jwt, { email, userId });
             let status = true;
-            await this.database.connect(); // TODO: Change this to open() maybe?
             await this.database.db.Users?.find().forEach((user) => {
               if (user.email === email) {
                 status = false;
@@ -87,8 +86,8 @@ export default class Server {
     // eslint-disable-next-line consistent-return
     this.app.post('/login', async (req: any, res: any): Promise<void> => {
       const { email, password } = req.body;
+      console.log('Login request received!');
       try {
-        await this.database.connect();
         const userData: Record<string, string> =
           (await this.database.db.Users?.findOne({ email })) || {};
         if (Object.keys(userData).length === 0) {
@@ -122,7 +121,6 @@ export default class Server {
       async (req: any, res: any): Promise<void> => {
         const { email, RefreshToken } = req.body;
         try {
-          await this.database.connect();
           const userData = await this.database.db.Users?.findOne({ email });
           if (
             userData?.refreshToken !== RefreshToken ||
@@ -153,7 +151,6 @@ export default class Server {
           return res.sendStatus(400);
         }
         try {
-          await this.database.connect();
           let data: any = {};
           await this.database.db.Users?.find({ email }).forEach(
             (i: WithId<Document>): void => {
@@ -173,7 +170,6 @@ export default class Server {
             // eslint-disable-next-line consistent-return
             async (err, hashedPassword): Promise<void> => {
               if (err) return res.sendStatus(500);
-              await this.database.connect();
               const SecretKey = crypto.randomBytes(200).toString('base64');
               await this.database.db.Users?.updateOne(
                 { email },
@@ -191,7 +187,7 @@ export default class Server {
     );
   }
 
-  run() {
+  public run() {
     this.database.connect();
     this.RegisterMiddleWares();
     this.RegisterRoutes();
@@ -200,7 +196,10 @@ export default class Server {
       console.log("Server's live at PORT", process.env.PORT || 3005);
     });
   }
+
+  public async dispose() {
+    await this.database.close();
+  }
 }
 
-const server = new Server();
-server.run();
+new Server().run();

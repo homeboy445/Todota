@@ -5,13 +5,20 @@ import './Login.css';
 
 const Login = () => {
   const context = useContext(Main);
-  const [email, updateEmail] = useState('');
-  const [password, updatePassword] = useState('');
-  const [disableButton, toggleButton] = useState(false);
+  const [email, updateEmail] = useState<string>('');
+  const [password, updatePassword] = useState<string>('');
+  const [disableButton, toggleButton] = useState<boolean>(false);
+  const [errorLoggingIn, updateErrorState] = useState<{
+    status: boolean;
+    message: string;
+  }>({ status: false, message: '' });
 
   return (
     <form className="login-main">
       <h1>Login</h1>
+      {errorLoggingIn.status ? (
+        <h3 className="wrong-pass-notif">{errorLoggingIn.message}</h3>
+      ) : null}
       <div className="login-input">
         <input
           type="email"
@@ -59,8 +66,21 @@ const Login = () => {
               })
               .catch((err) => {
                 toggleButton(false);
-              });
-          }}
+                const errorString = JSON.stringify(err);
+                updateErrorState({
+                  status: true,
+                  message: errorString.includes('401')
+                    ? 'Wrong email/password!'
+                    : 'Server error, please try later!',
+                });
+                setTimeout(() => {
+                  updateErrorState({
+                    status: false,
+                    message: '',
+                  });
+                }, 3000);
+              }); // TODO: Create a setTimeout wrapper for periodically changing states like the above one.
+          }} // TODO: You could create your API - frontend status syncer and may include special conditioning and messaging facility for different response status codes.
         >
           Sign-In
         </button>

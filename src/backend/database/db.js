@@ -63,6 +63,7 @@ class Database {
         return __awaiter(this, void 0, void 0, function* () {
             yield ((_a = this.client) === null || _a === void 0 ? void 0 : _a.close());
             this.connected = false;
+            console.log('Database disconnected!');
         });
     }
     isConnected() {

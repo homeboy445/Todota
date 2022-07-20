@@ -223,14 +223,14 @@ const Todo = () => {
                     type="checkbox"
                     checked={canUndo[item.tid] === true}
                     onChange={(): void => {
-                      const o = canUndo;
+                      const canUndoMap = canUndo;
                       const tid = item.tid;
-                      if (o[tid]) {
-                        o[tid] = false;
+                      if (canUndoMap[tid]) {
+                        canUndoMap[tid] = false;
                       } else {
-                        o[tid] = true;
+                        canUndoMap[tid] = true;
                       }
-                      updateUndoStatus(o);
+                      updateUndoStatus(canUndoMap);
                       updateCounter((counter + 1) % 2);
                       setTimeout(() => {
                         //The user has only 2 secs to change their decision.

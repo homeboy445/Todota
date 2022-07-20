@@ -64,6 +64,7 @@ export default class Database {
   async close() {
     await this.client?.close();
     this.connected = false;
+    console.log('Database disconnected!');
   }
 
   isConnected() {

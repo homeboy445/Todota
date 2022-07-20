@@ -103,8 +103,9 @@ const createWindow = async () => {
     }
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow.on('closed', async () => {
     mainWindow = null;
+    await SERVER.dispose();
     app.quit();
   });
 
@@ -365,7 +366,8 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
-    SERVER.run(); // Running the Todota Backend Server!
+    console.log(SERVER);
+    // SERVER.run(); // Running the Todota Backend Server!
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
