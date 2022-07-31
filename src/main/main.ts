@@ -13,8 +13,10 @@ import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 // import MenuBuilder from './menu';
+import * as fs from 'fs';
 import { resolveHtmlPath } from './util';
 import Server from '../backend/src/index';
+import Settings from '../../settings.json';
 
 export default class AppUpdater {
   constructor() {
@@ -67,11 +69,30 @@ const getAssetPath = (...paths: string[]): string => {
   return path.join(RESOURCES_PATH, ...paths);
 };
 
+const sendDataToWindow = (
+  window: BrowserWindow,
+  channel: string,
+  message: any,
+  delay = 2000 // `delay` is there to make sure that the window is properly initialized(as immediately invoking the `?.webContents.send` doesn't work, due to incomplete initialization of the BrowserWindow)!
+): void => {
+  setTimeout(() => {
+    window?.webContents.send(channel, message);
+  }, delay);
+};
+
 const broadCastWindowType = (window: BrowserWindow, type: string): void => {
   if (!window) return;
   setTimeout(() => {
     window.webContents.send('window-type', type);
   }, 1000);
+};
+
+const saveSettings = () => {
+  fs.writeFileSync(
+    path.join(__dirname, '../../settings.json'),
+    JSON.stringify(Settings)
+  );
+  mainWindow?.webContents.send('updatedSettings', Settings);
 };
 
 const createWindow = async () => {
@@ -163,6 +184,25 @@ const createWindow = async () => {
           label: 'Todo',
           submenu: [
             {
+              label: `coloring - ${Settings.Todos.coloring ? 1 : 0}`,
+              submenu: [
+                {
+                  label: 'on',
+                  click: () => {
+                    Settings.Todos.coloring = true;
+                    saveSettings();
+                  },
+                },
+                {
+                  label: 'off',
+                  click: () => {
+                    Settings.Todos.coloring = false;
+                    saveSettings();
+                  },
+                },
+              ],
+            },
+            {
               label: 'Sort Tasks',
               submenu: [
                 {
@@ -170,11 +210,25 @@ const createWindow = async () => {
                   submenu: [
                     {
                       label: 'ascending',
-                      click: () => {},
+                      click: () => {
+                        Settings.Todos.sort =
+                          Settings.Todos['sort-in'] === 'ascending'
+                            ? !Settings.Todos.sort
+                            : true;
+                        Settings.Todos['sort-in'] = 'ascending';
+                        saveSettings();
+                      },
                     },
                     {
                       label: 'descending',
-                      click: () => {},
+                      click: () => {
+                        Settings.Todos.sort =
+                          Settings.Todos['sort-in'] === 'descending'
+                            ? !Settings.Todos.sort
+                            : true;
+                        Settings.Todos['sort-in'] = 'descending';
+                        saveSettings();
+                      },
                     },
                   ],
                 },
@@ -183,11 +237,17 @@ const createWindow = async () => {
                   submenu: [
                     {
                       label: 'Priority',
-                      click: () => {},
+                      click: () => {
+                        Settings.Todos['sort-by'] = 'Priority';
+                        saveSettings();
+                      },
                     },
                     {
                       label: 'Date',
-                      click: () => {},
+                      click: () => {
+                        Settings.Todos['sort-by'] = 'Date';
+                        saveSettings();
+                      },
                     },
                   ],
                 },
@@ -196,29 +256,6 @@ const createWindow = async () => {
             {
               label: 'Show stats',
               click: () => {},
-            },
-          ],
-        },
-        {
-          label: 'Notes',
-          submenu: [
-            {
-              label: 'Search',
-              submenu: [
-                {
-                  label: 'case-sensitivity',
-                  submenu: [
-                    {
-                      label: 'on',
-                      click: () => {},
-                    },
-                    {
-                      label: 'off',
-                      click: () => {},
-                    },
-                  ],
-                },
-              ],
             },
           ],
         },
@@ -283,9 +320,7 @@ const createAddTaskWindow = () => {
 ipcMain.on('todo:open-add-task-window', (event, arg) => {
   if (addTodoTaskWindow === null) {
     createAddTaskWindow();
-    setTimeout(() => {
-      addTodoTaskWindow?.webContents.send('todo:addTask.edit', arg);
-    }, 2000);
+    sendDataToWindow(addTodoTaskWindow as any, 'todo:addTask.edit', arg);
   }
 });
 
@@ -334,16 +369,20 @@ const createComposeNoteWindow = (type: string) => {
 ipcMain.on('notes:compose', (event, data) => {
   if (composeNoteWindow === null) {
     createComposeNoteWindow(data.type || 'edit');
-    if (data.type === 'view') {
-      setTimeout(() => {
-        console.log(data);
-        composeNoteWindow?.webContents.send(
-          'notes:compose.edit',
-          data.description || ''
-        );
-      }, 2000);
-    }
+    sendDataToWindow(
+      composeNoteWindow as any,
+      `notes:compose.${data.type || 'edit'}`,
+      data
+    );
+    mainWindow?.reload();
   }
+});
+
+ipcMain.on('notes:reload', (event, data) => {
+  if (composeNoteWindow !== null) {
+    composeNoteWindow.close();
+  }
+  mainWindow?.reload();
 });
 
 ipcMain.on('notes:compose.addNote', (event, data) => {
@@ -366,8 +405,7 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
-    console.log(SERVER);
-    // SERVER.run(); // Running the Todota Backend Server!
+    SERVER.run(); // Running the Todota Backend Server!
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the

@@ -86,7 +86,6 @@ export default class Server {
     // eslint-disable-next-line consistent-return
     this.app.post('/login', async (req: any, res: any): Promise<void> => {
       const { email, password } = req.body;
-      console.log('Login request received!');
       try {
         const userData: Record<string, string> =
           (await this.database.db.Users?.findOne({ email })) || {};
@@ -201,5 +200,3 @@ export default class Server {
     await this.database.close();
   }
 }
-
-new Server().run();

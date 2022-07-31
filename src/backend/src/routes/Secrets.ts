@@ -38,13 +38,13 @@ router.post('/add', async (req, res) => {
       sid: uuid(),
       userId,
     });
-    res.json('Done!');
+    res.json({ status: 'ok', value: jwtData });
   } catch (e) {
     res.status(500).json("Something's wrong, please try again!");
   }
 });
 
-router.get('/remove/:sid', async (req, res) => {
+router.delete('/remove/:sid', async (req, res) => {
   const { sid } = req.params;
   const { userId } = req.body;
   const Database = extractDBLinkFromResponse(res);

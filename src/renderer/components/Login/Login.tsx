@@ -5,8 +5,8 @@ import './Login.css';
 
 const Login = () => {
   const context = useContext(Main);
-  const [email, updateEmail] = useState<string>('');
-  const [password, updatePassword] = useState<string>('');
+  const [email, updateEmail] = useState<string>('todotaAdmin@xyc.com');
+  const [password, updatePassword] = useState<string>('todota123');
   const [disableButton, toggleButton] = useState<boolean>(false);
   const [errorLoggingIn, updateErrorState] = useState<{
     status: boolean;

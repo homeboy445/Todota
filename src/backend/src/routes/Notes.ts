@@ -32,6 +32,7 @@ router.post('/add', async (req, res) => {
   const { description, tags, date, userId } = req.body;
   const Database = extractDBLinkFromResponse(res);
   try {
+    console.log('Received the request!');
     await Database.db.Notes?.insertOne({
       userId,
       description: description || '',
@@ -46,23 +47,26 @@ router.post('/add', async (req, res) => {
 });
 
 router.post('/update', async (req, res): Promise<any | void> => {
-  const { nid, description, tags, date, userId } = req.body;
+  const { nid, description, tags, userId } = req.body;
   const Database = extractDBLinkFromResponse(res);
   const obj: Record<string, string> = { nid };
   if (description) obj.description = description;
   if (tags) obj.tags = tags;
-  if (date) obj.date = date;
   if (Object.keys(obj).length <= 2) {
     return res.status(400).json('Invalid request!');
   }
   try {
+    const noteData = await Database.db.Notes.findOne({ nid, userId });
+    if (!noteData) {
+      return res.status(400).json('No such user exist!');
+    }
     await Database.db.Notes?.updateOne(
       {
         nid,
         userId,
       },
       {
-        $set: obj,
+        $set: { ...noteData, ...obj },
       }
     );
     res.json('Done!');
@@ -71,7 +75,7 @@ router.post('/update', async (req, res): Promise<any | void> => {
   }
 });
 
-router.get('/remove/:nid', async (req, res) => {
+router.delete('/remove/:nid', async (req, res) => {
   const Database = extractDBLinkFromResponse(res);
   const { nid } = req.params;
   const { userId } = req.body;
@@ -86,15 +90,15 @@ router.get('/remove/:nid', async (req, res) => {
   }
 });
 
-router.delete('/removeAll', async (req, res) => {
-  const { userId } = req.body;
-  const Database = extractDBLinkFromResponse(res);
-  try {
-    await Database.db.Notes?.deleteMany({ userId });
-    res.json('Done!');
-  } catch (e) {
-    res.status(500).json("Something's wrong, please try again!");
-  }
-});
+// router.delete('/removeAll', async (req, res) => {
+//   const { userId } = req.body;
+//   const Database = extractDBLinkFromResponse(res);
+//   try {
+//     await Database.db.Notes?.deleteMany({ userId });
+//     res.json('Done!');
+//   } catch (e) {
+//     res.status(500).json("Something's wrong, please try again!");
+//   }
+// });
 
 export default router;

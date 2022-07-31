@@ -28,6 +28,11 @@ export default function App() {
   const [WindowType, changeWindowType] = useState<string>('parent');
   const [counter, updateCounter] = useState<number>(0);
 
+  const LogOut = (): void => {
+    sessionStorage.clear();
+    window.location.href = '/';
+  };
+
   const ShouldCheckAuthStatus = (): boolean => {
     const url = window.location.href;
     return !(url.includes('todo:addTodo') || url.includes('notes:compose'));
@@ -37,7 +42,7 @@ export default function App() {
     status: boolean;
     AccessToken: string | null;
     RefreshToken: string | null;
-  }) => {
+  }): void => {
     if (!data.AccessToken) {
       data.AccessToken = AuthInfo.AccessToken;
     }
@@ -48,7 +53,13 @@ export default function App() {
     updateCounter((counter + 1) % 2);
   };
 
-  const UpdateRefreshToken = () => {
+  const UpdateRefreshToken = (err: Error): void => {
+    if (!ShouldCheckAuthStatus()) {
+      LogOut();
+      return;
+    }
+    if (!JSON.stringify(err || '').includes('401')) return;
+    // eslint-disable-next-line promise/no-promise-in-callback
     axios
       .post(`${uri}/refresh`, {
         email: sessionStorage.getItem('email'),
@@ -68,7 +79,6 @@ export default function App() {
         throw new Error(response.toString());
       })
       .catch((err) => {
-        console.log('ERROR: ', err);
         updateAuthInfo({
           status: false,
           AccessToken: null,
@@ -81,8 +91,7 @@ export default function App() {
 
   useEffect(() => {
     (window as any)?.electron?.ipcRenderer?.once('log_out', () => {
-      sessionStorage.clear();
-      window.location.href = '/';
+      LogOut();
     });
     if (ShouldCheckAuthStatus()) {
       const AToken = sessionStorage.getItem('AccessToken');

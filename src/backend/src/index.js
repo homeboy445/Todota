@@ -87,7 +87,6 @@ class Server {
         this.app.post('/login', (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _c, _d;
             const { email, password } = req.body;
-            console.log('Login request received!');
             try {
                 const userData = (yield ((_c = this.database.db.Users) === null || _c === void 0 ? void 0 : _c.findOne({ email }))) || {};
                 if (Object.keys(userData).length === 0) {
@@ -187,4 +186,3 @@ class Server {
     }
 }
 exports.default = Server;
-new Server().run();

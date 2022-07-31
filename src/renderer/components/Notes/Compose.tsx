@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 import axios from 'axios';
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Main from 'renderer/context/main';
 import TagFilter from '../Util/TagFilter';
@@ -11,29 +11,58 @@ import './Notes.css';
 const Compose = () => {
   const { type } = useParams();
   const context = useContext(Main);
+  const operationType = useRef();
 
-  const [description, updateDescription] = useState<string>('');
-  const [ViewFilterMenu, toggleFilterMenu] = useState<boolean>(false);
-  const [FilterSettings, updateFilterSettings] = useState<{
+  const [Note, changeNote] = useState<{
+    description: string;
     tags: Array<string>;
-  }>({ tags: [] });
+    date: string;
+  }>({
+    description: '',
+    tags: [],
+    date: '',
+  });
+  const [ViewFilterMenu, toggleFilterMenu] = useState<boolean>(false);
   const [counter, updateCounter] = useState<number>(0);
 
   const UpdateFilterSettings = (element: { tags: Array<string> }): void => {
-    updateFilterSettings(element);
+    changeNote({ ...Note, ...element });
     updateCounter((counter + 1) % 2);
+  };
+
+  const deleteNote = (nId: string): void => {
+    if (!nId.trim()) return;
+    // eslint-disable-next-line promise/catch-or-return
+    axios
+      .delete(`${context.URI}/Notes/remove/${nId}`, context.getAuthHeaders())
+      .then(() =>
+        (window as any).electron.ipcRenderer.send('notes:reload', true)
+      )
+      .catch((err) => console.log(err));
   };
 
   useEffect(() => {
     (window as any).electron.ipcRenderer.on(
-      'notes:compose.edit',
-      (data: string) => {
-        if (typeof data === 'string') {
-          updateDescription(data);
-        }
+      'notes:compose.add',
+      (data: Record<string, any>) => {
+        sessionStorage.setItem('AccessToken', data?.Auth?.AccessToken || '');
       }
     );
-  }, []);
+    (window as any).electron.ipcRenderer.on(
+      'notes:compose.edit',
+      (data: Record<string, any>) => {
+        changeNote({ ...Note, ...data.note }); // This way even if some property of `Note` is missing, it would be taken care of!
+        sessionStorage.setItem('AccessToken', data?.Auth?.AccessToken || '');
+        operationType.current = data.type;
+      }
+    );
+    (window as any).electron.ipcRenderer.on(
+      'notes:compose.view',
+      (data: { description: string }) => {
+        changeNote({ ...Note, ...data });
+      }
+    );
+  }, [Note, Note.tags, Note.description, counter]); // TODO: Make a counter wrapper class!
 
   return (
     <div>
@@ -56,9 +85,9 @@ const Compose = () => {
             <textarea
               placeholder="Flush your thoughts here."
               disabled={ViewFilterMenu}
-              value={description}
+              value={Note.description}
               onChange={(e) => {
-                updateDescription(e.target.value);
+                changeNote({ ...Note, description: e.target.value });
               }}
             />
             <button
@@ -66,29 +95,39 @@ const Compose = () => {
               className="notes-add-task-btn"
               disabled={ViewFilterMenu}
               onClick={() => {
-                const dataObject = {
-                  description,
-                  tags: FilterSettings.tags,
+                const getUriRoute = () => {
+                  const route = operationType.current;
+                  return route === 'edit' ? 'update' : route;
+                };
+                const dataObject: Record<string, any> = {
+                  description: Note.description,
+                  tags: Note.tags,
                   date: new Date().toISOString(),
                 };
-                axios
-                  .post(
-                    `${context.URI}/Notes/add`,
-                    dataObject,
-                    context.getAuthHeaders()
-                  )
-                  .then((response) => {
-                    if (response.data === 'Done!') {
-                      (window as any)?.electron.ipcRenderer.send(
-                        'notes:compose.addNote',
-                        dataObject
-                      );
-                    }
-                    throw new Error('');
-                  })
-                  .catch((err) => {
-                    context.RefreshAccessToken();
-                  });
+                if (operationType.current === 'edit') {
+                  dataObject.nid = (Note as any).nid;
+                  dataObject.date = Note.date;
+                }
+                if (Note.description.trim()) {
+                  axios
+                    .post(
+                      `${context.URI}/Notes/${getUriRoute()}`,
+                      dataObject,
+                      context.getAuthHeaders()
+                    )
+                    .then((response) => {
+                      if (response.data === 'Done!') {
+                        (window as any)?.electron.ipcRenderer.send(
+                          'notes:compose.addNote',
+                          dataObject
+                        );
+                      }
+                      throw new Error('');
+                    })
+                    .catch((err) => {}); // Todo: Make a message box!
+                } else {
+                  deleteNote((Note as any).nid || '');
+                }
               }}
             >
               Done
@@ -96,12 +135,12 @@ const Compose = () => {
           </div>
           <TagFilter
             alignment={{ top: 26, left: ViewFilterMenu ? 23 : 150 }}
-            FilterSettings={FilterSettings}
+            FilterSettings={{ tags: Note.tags }}
             UpdateSettings={UpdateFilterSettings}
           />
         </div>
       ) : (
-        <div className="note-view">{description}</div>
+        <div className="note-view">{Note.description}</div>
       )}
     </div>
   );

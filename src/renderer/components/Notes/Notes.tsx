@@ -5,10 +5,12 @@
 import { useState, useEffect, useContext } from 'react';
 import { v4 as uuid } from 'uuid';
 import Main from 'renderer/context/main';
+import axios from 'axios';
 import Filter from './Filter';
 import NoteIcon from '../../assets/note.jpg';
+import EditIcon from '../../assets/edit.png';
+import ViewIcon from '../../assets/view.png';
 import './Notes.css';
-import axios from 'axios';
 
 type Note = { description: string; tags: Array<string>; date: string };
 type FilterSettings = {
@@ -18,6 +20,7 @@ type FilterSettings = {
 
 const Notes = () => {
   const context = useContext(Main);
+  const MIN_DESCRIPTION_CHAR = 60;
   const [notesList, updateNotesList] = useState<Array<Note>>([
     /*     {
       description:
@@ -54,6 +57,7 @@ const Notes = () => {
       duration: { from: null, to: null },
     },
   });
+  const [fetchedData, updateFetchState] = useState<boolean>(false);
   const [counter, updateCounter] = useState<number>(0);
 
   const doesTagExist = (target: Array<string>): boolean => {
@@ -69,7 +73,7 @@ const Notes = () => {
     return false;
   };
 
-  const doesExistInBetween = (date: string): boolean => {
+  const doesItemExistInBetween = (date: string): boolean => {
     if (!FilterSettings.duration.from && !FilterSettings.duration.to) {
       return false;
     }
@@ -96,6 +100,7 @@ const Notes = () => {
           {searchQuery}
         </span>
         {element.substring(idx + len, element.length)}
+        {element.length > MIN_DESCRIPTION_CHAR ? '...' : ''}
       </h2>
     );
   };
@@ -155,7 +160,7 @@ const Notes = () => {
           (item.description.includes(searchQuery) &&
             searchQuery.trim() !== '') ||
           doesTagExist(item.tags) ||
-          doesExistInBetween(item.date)
+          doesItemExistInBetween(item.date)
         ) {
           result.push(item);
         }
@@ -170,14 +175,18 @@ const Notes = () => {
     }
   };
 
-  const fetchNotesFromAPI = () => {
+  const fetchNotesFromAPI = (): void => {
+    if (fetchedData) {
+      return;
+    }
     axios
       .get(`${context.URI}/Notes/`, context.getAuthHeaders())
       .then((response) => {
+        updateFetchState(true);
         return updateNotesList(response.data);
       })
       .catch((err) => {
-        context.RefreshAccessToken();
+        context.RefreshAccessToken(err);
       });
   };
 
@@ -190,12 +199,13 @@ const Notes = () => {
     }
     initiateSearchOperation();
     fetchNotesFromAPI();
+    console.log('Running....!');
   }, [
     FilterSettings.duration.from,
     FilterSettings.duration.to,
     FilterSettings.tags,
-    notesList,
     originalList,
+    notesList,
     searchQuery,
     counter,
   ]);
@@ -257,29 +267,49 @@ const Notes = () => {
           {(originalList || []).length > 0 ? (
             notesList.map((note: Note) => {
               return (
-                <div
-                  className="note-card"
-                  key={uuid()}
-                  onClick={() => {
-                    (window as any)?.electron?.ipcRenderer?.send(
-                      'notes:compose',
-                      {
-                        type: 'view',
-                        description: note.description,
-                      }
-                    );
-                  }}
-                >
-                  <h3>{new Date(note.date).toLocaleDateString()}</h3>
+                <div className="note-card" key={uuid()}>
+                  <div className="timeAndicons">
+                    <h3>{new Date(note.date).toLocaleDateString()}</h3>
+                    <div>
+                      <img
+                        src={ViewIcon}
+                        alt="view"
+                        onClick={() => {
+                          (window as any)?.electron?.ipcRenderer?.send(
+                            'notes:compose',
+                            {
+                              type: 'view',
+                              description: note.description,
+                            }
+                          );
+                        }}
+                      />
+                      <img
+                        src={EditIcon}
+                        alt="edit"
+                        onClick={() => {
+                          console.log(note);
+                          (window as any)?.electron?.ipcRenderer?.send(
+                            'notes:compose',
+                            {
+                              type: 'edit',
+                              note,
+                              Auth: context.AuthInfo,
+                            }
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
                   {highlightSearchedResults(
                     note.description.substring(
                       0,
-                      Math.min(200, note.description.length - 1)
+                      Math.min(
+                        MIN_DESCRIPTION_CHAR,
+                        note.description.length - 1
+                      )
                     )
                   )}
-                  <span style={{ display: 'inline' }}>
-                    {note.description.length - 1 > 200 ? '...' : ''}
-                  </span>
                   <div className="note-tags">
                     {note.tags.map((tag: string) => {
                       return <p key={uuid()}>{highlightSelectedTags(tag)}</p>;
@@ -303,7 +333,8 @@ const Notes = () => {
         type="button"
         onClick={() => {
           (window as any)?.electron?.ipcRenderer?.send('notes:compose', {
-            type: 'edit',
+            type: 'add',
+            Auth: context.AuthInfo,
           });
           (window as any)?.electron?.ipcRenderer?.once(
             'notes:addNote',

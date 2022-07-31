@@ -34,7 +34,6 @@ router.post('/add', async (req, res) => {
   const { task, priority, date, tags, userId } = req.body; // NOTE: userId's a custom property which is being saved with JWTificiation;
   const Database = extractDBLinkFromResponse(res);
   try {
-    console.log('TODO:ADD route called!');
     await Database.db.Todos?.insertOne({
       tid: uuid(),
       task,
@@ -69,12 +68,17 @@ router.post('/update', async (req, res): Promise<any> => {
   }
 });
 
-router.get('/remove/:tid', async (req, res) => {
+router.delete('/remove/:tid', async (req, res) => {
   // TODO: put this at halt for now.
   const { tid } = req.params;
   const { userId } = req.body;
-  console.log(tid, ' ', userId);
-  res.json('Hello!');
+  const Database = extractDBLinkFromResponse(res);
+  try {
+    await Database.db.Todos.deleteOne({ tid, userId });
+    res.json('Done!');
+  } catch (e) {
+    res.status(500).json("Something's wrong, please try again!");
+  }
 });
 
 /* router.delete("/removeAll", async (req, res) => {

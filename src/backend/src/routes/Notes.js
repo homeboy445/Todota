@@ -40,6 +40,7 @@ router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const { description, tags, date, userId } = req.body;
     const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     try {
+        console.log('Received the request!');
         yield ((_b = Database.db.Notes) === null || _b === void 0 ? void 0 : _b.insertOne({
             userId,
             description: description || '',
@@ -55,24 +56,26 @@ router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 }));
 router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
-    const { nid, description, tags, date, userId } = req.body;
+    const { nid, description, tags, userId } = req.body;
     const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     const obj = { nid };
     if (description)
         obj.description = description;
     if (tags)
         obj.tags = tags;
-    if (date)
-        obj.date = date;
     if (Object.keys(obj).length <= 2) {
         return res.status(400).json('Invalid request!');
     }
     try {
+        const noteData = yield Database.db.Notes.findOne({ nid, userId });
+        if (!noteData) {
+            return res.status(400).json('No such user exist!');
+        }
         yield ((_c = Database.db.Notes) === null || _c === void 0 ? void 0 : _c.updateOne({
             nid,
             userId,
         }, {
-            $set: obj,
+            $set: Object.assign(Object.assign({}, noteData), obj),
         }));
         res.json('Done!');
     }
@@ -80,7 +83,7 @@ router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.get('/remove/:nid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete('/remove/:nid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _d;
     const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     const { nid } = req.params;
@@ -96,16 +99,14 @@ router.get('/remove/:nid', (req, res) => __awaiter(void 0, void 0, void 0, funct
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.delete('/removeAll', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
-    const { userId } = req.body;
-    const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
-    try {
-        yield ((_e = Database.db.Notes) === null || _e === void 0 ? void 0 : _e.deleteMany({ userId }));
-        res.json('Done!');
-    }
-    catch (e) {
-        res.status(500).json("Something's wrong, please try again!");
-    }
-}));
+// router.delete('/removeAll', async (req, res) => {
+//   const { userId } = req.body;
+//   const Database = extractDBLinkFromResponse(res);
+//   try {
+//     await Database.db.Notes?.deleteMany({ userId });
+//     res.json('Done!');
+//   } catch (e) {
+//     res.status(500).json("Something's wrong, please try again!");
+//   }
+// });
 exports.default = router;

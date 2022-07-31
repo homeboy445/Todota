@@ -124,10 +124,7 @@ const AddTask = () => {
                   Task
                 );
               })
-              .catch((err) => {
-                console.log(err);
-                context.RefreshAccessToken();
-              })
+              .catch((err) => {})
               .finally(() => {
                 toggleButton(false);
               });

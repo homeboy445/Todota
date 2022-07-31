@@ -45,13 +45,13 @@ router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             sid: (0, uuid_1.v4)(),
             userId,
         }));
-        res.json('Done!');
+        res.json({ status: 'ok', value: jwtData });
     }
     catch (e) {
         res.status(500).json("Something's wrong, please try again!");
     }
 }));
-router.get('/remove/:sid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete('/remove/:sid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     const { sid } = req.params;
     const { userId } = req.body;

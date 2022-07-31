@@ -8,7 +8,7 @@ const Main = React.createContext<{
     AccessToken: string | null;
     RefreshToken: string | null;
   }) => void;
-  RefreshAccessToken: () => void;
+  RefreshAccessToken: (err: Error) => void;
   getAuthHeaders: () => {
     headers: {
       Authorization: string;
