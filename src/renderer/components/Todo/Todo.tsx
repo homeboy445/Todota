@@ -126,7 +126,6 @@ const Todo = () => {
       }
       return 0;
     };
-    console.log('@@ ', Settings);
     if (Settings.Todos.sort) {
       const list = originalList;
       const ss = JSON.stringify(list);
@@ -138,12 +137,10 @@ const Todo = () => {
         a.date = new Date(a.date);
         b.date = new Date(b.date);
         const key = Settings.Todos['sort-by'].toLowerCase();
-        console.log(a[key], ' * ', b[key]);
         return compare(a[key], b[key]);
       });
       updateOrgList(list);
       updateList(list);
-      console.log(JSON.stringify(list) === ss);
       updateCounter((counter + 1) % 2);
     }
     updateSettings({ ...(settingsManager as any), isApplied: true });

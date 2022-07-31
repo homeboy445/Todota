@@ -28,14 +28,16 @@ const Secrets = () => {
   const [counter, updateCounter] = useState<number>(0);
 
   const highlightSearchedResults = (element: string) => {
-    const idx = element.lastIndexOf(searchQuery);
+    const idx = element.toLowerCase().lastIndexOf(searchQuery.toLowerCase());
     if (idx === -1) return <h2 key={uuid()}>{element}</h2>;
     const len = searchQuery.length;
     return (
       <h2 key={uuid()} id="note-text">
         {element.substring(0, idx)}
         <span style={{ display: 'inline', background: 'yellow' }}>
-          {searchQuery}
+          {searchQuery.length > 0
+            ? element.substring(idx, idx + searchQuery.length)
+            : ''}
         </span>
         {element.substring(idx + len, element.length)}
       </h2>
@@ -89,7 +91,11 @@ const Secrets = () => {
       if (searchQuery === prevSearchQuery) return;
       const searchedSecrets: Array<Secret> = [];
       for (let idx = 0; idx < originalList.length; idx += 1) {
-        if (originalList[idx].key.includes(searchQuery)) {
+        if (
+          originalList[idx].key
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        ) {
           searchedSecrets.push(originalList[idx] as Secret);
         }
       }

@@ -184,7 +184,7 @@ const createWindow = async () => {
           label: 'Todo',
           submenu: [
             {
-              label: `coloring - ${Settings.Todos.coloring ? 1 : 0}`,
+              label: `coloring`,
               submenu: [
                 {
                   label: 'on',
