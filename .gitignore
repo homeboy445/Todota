@@ -35,3 +35,4 @@ npm-debug.log.*
 *.js
 
 settings.json
+./src/backend/Strings.ts

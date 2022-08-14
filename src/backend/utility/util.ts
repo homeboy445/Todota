@@ -1,7 +1,9 @@
+import process from '../Strings';
+
 export default class Util {
   static getJwtToken = (jwt: any, userObject: any) => {
     const AccessToken = jwt.sign({ userObject }, process.env.ACCESS_TOKEN_KEY, {
-      expiresIn: '1000m', //TODO: Reduce this duration!
+      expiresIn: '1000m', // TODO: Reduce this duration!
     });
     const RefreshToken = jwt.sign(
       { userObject },

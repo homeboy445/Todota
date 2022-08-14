@@ -17,6 +17,7 @@ const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const uuid_1 = require("uuid");
 const middleware_1 = require("../../middleware/middleware");
+const Strings_1 = __importDefault(require("../../Strings"));
 const router = express_1.default.Router();
 router.use(middleware_1.CheckAuthAndRetrieveDB);
 router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -28,7 +29,7 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const record = i;
         delete record.userId;
         delete record._id;
-        record.value = jsonwebtoken_1.default.verify(record.value, process.env.SECRET_KEY || '');
+        record.value = jsonwebtoken_1.default.verify(record.value, Strings_1.default.env.SECRET_KEY || '');
         data.push(record);
     }));
     res.json(data);
@@ -38,7 +39,7 @@ router.post('/add', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const { key, value, userId } = req.body;
     const Database = (0, middleware_1.extractDBLinkFromResponse)(res);
     try {
-        const jwtData = jsonwebtoken_1.default.sign(value, process.env.SECRET_KEY || '');
+        const jwtData = jsonwebtoken_1.default.sign(value, Strings_1.default.env.SECRET_KEY || '');
         yield ((_b = Database.db.Secrets) === null || _b === void 0 ? void 0 : _b.insertOne({
             key,
             value: jwtData,

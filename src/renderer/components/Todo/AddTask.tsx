@@ -31,7 +31,6 @@ const AddTask = () => {
         console.log(data);
         if (typeof data === 'object') {
           if ('task' in data) {
-            console.log('@@ ', data);
             changeDescription(data.task);
             updatePriority(data.priority);
             updateTime(data.date);
@@ -102,7 +101,6 @@ const AddTask = () => {
             if (description.trim() === '' || priority === 'null') {
               return;
             }
-            console.log('Clicked!');
             toggleButton(true);
             const Task = {
               tid: editMode.additional?.tid,

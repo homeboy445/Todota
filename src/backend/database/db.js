@@ -8,10 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable */
 require("dotenv/config");
 const mongodb_1 = require("mongodb");
+const Strings_1 = __importDefault(require("../Strings"));
 class DbUtil {
     parseFindAndGetResults(target) {
         return new Promise((resolve, reject) => {
@@ -31,7 +35,7 @@ class DbUtil {
 class Database {
     constructor() {
         this.connected = false;
-        this.client = new mongodb_1.MongoClient(process.env.URI || '');
+        this.client = new mongodb_1.MongoClient(Strings_1.default.env.URI || '');
         this.db = {
             Users: null,
             Todos: null,

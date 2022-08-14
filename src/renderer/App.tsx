@@ -1,7 +1,8 @@
+/* eslint-disable no-nested-ternary */
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -25,8 +26,11 @@ export default function App() {
     AccessToken: null,
     RefreshToken: null,
   });
+  const [isProdMode, toggleMode] = useState<boolean>(false);
   const [WindowType, changeWindowType] = useState<string>('parent');
   const [counter, updateCounter] = useState<number>(0);
+  const [mode, changeMode] = useState<'Todo' | 'Notes' | 'Secrets'>('Todo');
+  const [IsSubWindow, toggleSubWindow] = useState<boolean>(false);
 
   const LogOut = (): void => {
     sessionStorage.clear();
@@ -93,6 +97,24 @@ export default function App() {
     (window as any)?.electron?.ipcRenderer?.once('log_out', () => {
       LogOut();
     });
+    (window as any)?.electron.ipcRenderer?.on(
+      'change-window',
+      (data: 'Todo' | 'Notes' | 'Secrets') => {
+        return changeMode(data);
+      }
+    );
+    (window as any)?.electron.ipcRenderer?.on(
+      'IsSubWindow',
+      (data: boolean) => {
+        toggleSubWindow(!!data);
+      }
+    );
+    (window as any)?.electron.ipcRenderer.once(
+      'isProdMode',
+      (data: boolean) => {
+        toggleMode(data);
+      }
+    );
     if (ShouldCheckAuthStatus()) {
       const AToken = sessionStorage.getItem('AccessToken');
       (window as any).electron.ipcRenderer.once(
@@ -121,7 +143,7 @@ export default function App() {
         });
       }
     }
-  }, [AuthInfo, WindowType, counter]);
+  }, [AuthInfo, WindowType, counter, mode, IsSubWindow]);
 
   return (
     <Main.Provider
@@ -137,25 +159,45 @@ export default function App() {
             },
           };
         },
+        isProdMode,
       }}
     >
-      <Router>
-        {AuthInfo.status ? (
-          <Routes>
-            <Route path="/" element={<Todo />} />
-            <Route path="todo:addTodo" element={<AddTask />} />
-            <Route path="notes" element={<Notes />} />
-            <Route path="notes:compose/:type" element={<Compose />} />
-            <Route path="secrets" element={<Secrets />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+      {isProdMode ? (
+        AuthInfo.status ? (
+          mode === 'Todo' ? (
+            <Todo />
+          ) : mode === 'Notes' ? (
+            <Notes />
+          ) : mode === 'Secrets' ? (
+            <Secrets />
+          ) : mode === 'AddTask' ? (
+            <AddTask />
+          ) : (
+            // expected format - Compose.type
+            <Compose type={(mode as string).split('.')[1]} />
+          )
         ) : (
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        )}
-      </Router>
+          <Login />
+        )
+      ) : (
+        <Router>
+          {AuthInfo.status || IsSubWindow ? (
+            <Routes>
+              <Route path="/" element={<Todo />} />
+              <Route path="todo:addTodo" element={<AddTask />} />
+              <Route path="notes" element={<Notes />} />
+              <Route path="notes:compose/:type" element={<Compose type="" />} />
+              <Route path="secrets" element={<Secrets />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          ) : (
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          )}
+        </Router>
+      )}
     </Main.Provider>
   );
 }

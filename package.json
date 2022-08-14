@@ -85,7 +85,8 @@
       "output": "release/build"
     },
     "extraResources": [
-      "./assets/**"
+      "./assets/**",
+      "./src/renderer/assets/**"
     ],
     "publish": {
       "provider": "github",

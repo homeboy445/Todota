@@ -8,8 +8,8 @@ import Main from 'renderer/context/main';
 import TagFilter from '../Util/TagFilter';
 import './Notes.css';
 
-const Compose = () => {
-  const { type } = useParams();
+const Compose = ({ type }: Record<string, any>) => {
+  const { typeFromParam } = useParams();
   const context = useContext(Main);
   const operationType = useRef();
 
@@ -66,7 +66,7 @@ const Compose = () => {
 
   return (
     <div>
-      {type === 'edit' ? (
+      {(type || typeFromParam) !== 'view' ? (
         <div>
           {' '}
           <div
@@ -96,7 +96,7 @@ const Compose = () => {
               disabled={ViewFilterMenu}
               onClick={() => {
                 const getUriRoute = () => {
-                  const route = operationType.current;
+                  const route = type || operationType.current;
                   return route === 'edit' ? 'update' : route;
                 };
                 const dataObject: Record<string, any> = {

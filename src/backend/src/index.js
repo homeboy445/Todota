@@ -24,6 +24,7 @@ const Notes_1 = __importDefault(require("./routes/Notes"));
 const Secrets_1 = __importDefault(require("./routes/Secrets"));
 const db_1 = __importDefault(require("../database/db"));
 const util_1 = __importDefault(require("../utility/util"));
+const Strings_1 = __importDefault(require("../Strings"));
 class Server {
     constructor() {
         this.app = (0, express_1.default)();
@@ -52,8 +53,8 @@ class Server {
                 bcryptjs_1.default.hash(password, 11, (err, hashedPassword) => __awaiter(this, void 0, void 0, function* () {
                     var _a, _b;
                     if (err ||
-                        !process.env.ACCESS_TOKEN_KEY ||
-                        !process.env.REFRESH_TOKEN_KEY) {
+                        !Strings_1.default.env.ACCESS_TOKEN_KEY ||
+                        !Strings_1.default.env.REFRESH_TOKEN_KEY) {
                         res.status(401).json("Something's wrong, try again!");
                         return false;
                     }
@@ -93,7 +94,7 @@ class Server {
                     return res.status(401).json("User doesn't exist!");
                 }
                 if (yield bcryptjs_1.default.compare(password, (userData === null || userData === void 0 ? void 0 : userData.password) || '')) {
-                    if (!process.env.ACCESS_TOKEN_KEY || !process.env.REFRESH_TOKEN_KEY) {
+                    if (!Strings_1.default.env.ACCESS_TOKEN_KEY || !Strings_1.default.env.REFRESH_TOKEN_KEY) {
                         res.status(500).json("Something's wrong, please try again!");
                     }
                     const tokens = util_1.default.getJwtToken(jsonwebtoken_1.default, {
@@ -119,7 +120,7 @@ class Server {
             try {
                 const userData = yield ((_e = this.database.db.Users) === null || _e === void 0 ? void 0 : _e.findOne({ email }));
                 if ((userData === null || userData === void 0 ? void 0 : userData.refreshToken) !== RefreshToken ||
-                    !jsonwebtoken_1.default.verify(RefreshToken, process.env.REFRESH_TOKEN_KEY || '')) {
+                    !jsonwebtoken_1.default.verify(RefreshToken, Strings_1.default.env.REFRESH_TOKEN_KEY || '')) {
                     return res.status(401).json('Error!');
                 }
                 const tokens = util_1.default.getJwtToken(jsonwebtoken_1.default, email);
@@ -174,9 +175,9 @@ class Server {
         this.database.connect();
         this.RegisterMiddleWares();
         this.RegisterRoutes();
-        this.app.listen(process.env.PORT || 3005, () => {
+        this.app.listen(3005, () => {
             // eslint-disable-next-line no-console
-            console.log("Server's live at PORT", process.env.PORT || 3005);
+            console.log("Server's live at PORT", 3005);
         });
     }
     dispose() {

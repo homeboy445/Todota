@@ -11,6 +11,7 @@ import NotesRouter from './routes/Notes';
 import SecretsRouter from './routes/Secrets';
 import Database from '../database/db';
 import Util from '../utility/util';
+import process from '../Strings';
 
 export default class Server {
   app: any;
@@ -190,9 +191,9 @@ export default class Server {
     this.database.connect();
     this.RegisterMiddleWares();
     this.RegisterRoutes();
-    this.app.listen(process.env.PORT || 3005, () => {
+    this.app.listen(3005, () => {
       // eslint-disable-next-line no-console
-      console.log("Server's live at PORT", process.env.PORT || 3005);
+      console.log("Server's live at PORT", 3005);
     });
   }
 

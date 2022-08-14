@@ -7,7 +7,6 @@ import EditIcon from '../../assets/edit.png';
 import Filter from '../Notes/Filter';
 import Main from 'renderer/context/main';
 import axios from 'axios';
-import SettingsObject from '../../../../settings.json';
 
 type Task = {
   tid: string;
@@ -34,8 +33,8 @@ const Todo = () => {
   }>({ tags: [] });
   const [settingsManager, updateSettings] = useState<{
     isApplied: boolean;
-    settings: typeof SettingsObject;
-  }>({ isApplied: false, settings: SettingsObject });
+    settings: Record<any, any>;
+  }>({ isApplied: false, settings: {} });
 
   const doesTagExist = (element: Array<string>): boolean => {
     const o: Record<string, boolean> = {};
@@ -106,11 +105,20 @@ const Todo = () => {
   };
 
   const ApplySettings = () => {
-    if (settingsManager.isApplied || originalList.length < 1) return;
-    const Settings: typeof SettingsObject = settingsManager.settings;
+    if (
+      settingsManager.isApplied ||
+      originalList.length < 1 ||
+      Object.keys(settingsManager.settings).length < 1
+    ) {
+      return;
+    }
+    const Settings = settingsManager.settings;
     const compare = (z: string | Date, k: string | Date) => {
       const type = Settings.Todos['sort-in'];
       if (z > k) {
+        return type === 'ascending' ? 1 : -1;
+      }
+      if (z < k) {
         return type === 'ascending' ? -1 : 1;
       }
       return 0;
@@ -128,16 +136,15 @@ const Todo = () => {
     };
     if (Settings.Todos.sort) {
       const list = originalList;
-      const ss = JSON.stringify(list);
       list.sort((a1: Task, b1: Task) => {
-        const a: any = { ...a1 },
-          b: any = { ...b1 };
-        a.priority = getPriorityNumber(a.priority);
-        b.priority = getPriorityNumber(b.priority);
-        a.date = new Date(a.date);
-        b.date = new Date(b.date);
+        const task1: any = { ...a1 },
+          task2: any = { ...b1 };
+        task1.priority = getPriorityNumber(task1.priority);
+        task2.priority = getPriorityNumber(task2.priority);
+        task1.date = new Date(task1.date);
+        task2.date = new Date(task2.date);
         const key = Settings.Todos['sort-by'].toLowerCase();
-        return compare(a[key], b[key]);
+        return compare(task1[key], task2[key]);
       });
       updateOrgList(list);
       updateList(list);
@@ -146,26 +153,27 @@ const Todo = () => {
     updateSettings({ ...(settingsManager as any), isApplied: true });
   };
 
+  (window as any).electron.ipcRenderer.on(
+    'updatedSettings',
+    (settings: Record<any, any>) => {
+      console.log(settings);
+      if (
+        JSON.stringify(settings) === JSON.stringify(settingsManager.settings)
+      ) {
+        return;
+      }
+      updateSettings({ isApplied: false, settings });
+      updateCounter((counter + 1) % 2);
+      ApplySettings();
+    }
+  );
+
   useEffect(() => {
     if (originalList.length < taskList.length) {
       updateOrgList(taskList);
     }
     initiateSearchOperation();
     fetchData();
-    ApplySettings();
-    (window as any).electron.ipcRenderer.once(
-      'updatedSettings',
-      (settings: typeof SettingsObject) => {
-        console.log(settings);
-        if (
-          JSON.stringify(settings) === JSON.stringify(settingsManager.settings)
-        ) {
-          return;
-        }
-        updateSettings({ isApplied: false, settings });
-        ApplySettings();
-      }
-    );
   }, [
     taskList,
     flag,
@@ -203,7 +211,7 @@ const Todo = () => {
     );
   };
 
-  const getBorderColorByPriority = (priority: string) => {
+  const getBorderColorByPriority = (priority: string): string => {
     switch (priority) {
       case 'high':
         return 'Red';
@@ -212,6 +220,7 @@ const Todo = () => {
       case 'low':
         return 'Green';
     }
+    return 'grey';
   };
 
   return (
@@ -287,7 +296,7 @@ const Todo = () => {
                   key={uuid()}
                   style={{
                     transform: `translateX(${flag.index === index ? 110 : 0}%)`,
-                    border: settingsManager.settings.Todos.coloring
+                    border: settingsManager.settings?.Todos?.coloring
                       ? `0.4px solid ${getBorderColorByPriority(item.priority)}`
                       : 'none',
                     borderRadius: '2px',

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import process from '../Strings';
 
 const authenticate = (req: any, res: any, next: any) => {
   const header = req.headers.authorization || 'Bearer null';

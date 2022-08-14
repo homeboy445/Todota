@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import { Collection, FindCursor, MongoClient, WithId } from 'mongodb';
 import { Document } from 'bson';
+import process from '../Strings';
 
 class DbUtil {
   parseFindAndGetResults(

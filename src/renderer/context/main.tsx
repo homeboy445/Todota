@@ -14,6 +14,7 @@ const Main = React.createContext<{
       Authorization: string;
     };
   };
+  isProdMode: boolean;
 }>({
   AuthInfo: { status: false, AccessToken: null },
   URI: '',

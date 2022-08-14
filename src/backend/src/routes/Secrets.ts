@@ -7,6 +7,7 @@ import {
   CheckAuthAndRetrieveDB,
   extractDBLinkFromResponse,
 } from '../../middleware/middleware';
+import process from '../../Strings';
 
 const router = express.Router();
 router.use(CheckAuthAndRetrieveDB);

@@ -12,11 +12,9 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-// import MenuBuilder from './menu';
-import * as fs from 'fs';
 import { resolveHtmlPath } from './util';
 import Server from '../backend/src/index';
-import Settings from '../../settings.json';
+import Settings from '../settings';
 
 export default class AppUpdater {
   constructor() {
@@ -87,12 +85,23 @@ const broadCastWindowType = (window: BrowserWindow, type: string): void => {
   }, 1000);
 };
 
-const saveSettings = () => {
-  fs.writeFileSync(
-    path.join(__dirname, '../../settings.json'),
-    JSON.stringify(Settings)
-  );
+const propagateSettings = () => {
+  // fs.writeFileSync(
+  //   path.join(__dirname, '../../settings.ts'),
+  //   JSON.stringify(Settings)
+  // );
   mainWindow?.webContents.send('updatedSettings', Settings);
+};
+
+const prodModeProcessing = (
+  window: BrowserWindow | null,
+  windowType: string,
+  isSubWindow = true
+) => {
+  if (!app.isPackaged) return;
+  window?.webContents.send('change-window', windowType);
+  window?.webContents.send('IsSubWindow', isSubWindow);
+  window?.webContents.send('isProdMode', true);
 };
 
 const createWindow = async () => {
@@ -114,6 +123,7 @@ const createWindow = async () => {
   mainWindow.loadURL(resolveHtmlPath(''));
 
   mainWindow.on('ready-to-show', () => {
+    prodModeProcessing(mainWindow, 'Todo', false);
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
@@ -126,6 +136,8 @@ const createWindow = async () => {
 
   mainWindow.on('closed', async () => {
     mainWindow = null;
+    addTodoTaskWindow = null;
+    composeNoteWindow = null;
     await SERVER.dispose();
     app.quit();
   });
@@ -148,7 +160,11 @@ const createWindow = async () => {
         {
           label: 'Todo',
           click: () => {
-            mainWindow?.loadURL(resolveHtmlPath(''));
+            if (app.isPackaged) {
+              mainWindow?.webContents.send('change-window', 'Todo');
+            } else {
+              mainWindow?.loadURL(resolveHtmlPath(''));
+            }
             if (composeNoteWindow !== null) {
               composeNoteWindow.close();
             }
@@ -157,7 +173,11 @@ const createWindow = async () => {
         {
           label: 'Notes',
           click: () => {
-            mainWindow?.loadURL(resolveHtmlPath('Notes'));
+            if (app.isPackaged) {
+              mainWindow?.webContents.send('change-window', 'Notes');
+            } else {
+              mainWindow?.loadURL(resolveHtmlPath('Notes'));
+            }
             if (addTodoTaskWindow !== null) {
               addTodoTaskWindow.close();
             }
@@ -166,7 +186,11 @@ const createWindow = async () => {
         {
           label: 'Secrets',
           click: () => {
-            mainWindow?.loadURL(resolveHtmlPath('secrets'));
+            if (app.isPackaged) {
+              mainWindow?.webContents.send('change-window', 'Secrets');
+            } else {
+              mainWindow?.loadURL(resolveHtmlPath('secrets'));
+            }
             if (addTodoTaskWindow !== null) {
               addTodoTaskWindow.close();
             }
@@ -190,14 +214,14 @@ const createWindow = async () => {
                   label: 'on',
                   click: () => {
                     Settings.Todos.coloring = true;
-                    saveSettings();
+                    propagateSettings();
                   },
                 },
                 {
                   label: 'off',
                   click: () => {
                     Settings.Todos.coloring = false;
-                    saveSettings();
+                    propagateSettings();
                   },
                 },
               ],
@@ -206,28 +230,39 @@ const createWindow = async () => {
               label: 'Sort Tasks',
               submenu: [
                 {
+                  label: 'toggle',
+                  submenu: [
+                    {
+                      label: 'on',
+                      click: () => {
+                        Settings.Todos.sort = true;
+                        propagateSettings();
+                      },
+                    },
+                    {
+                      label: 'off',
+                      click: () => {
+                        Settings.Todos.sort = false;
+                        propagateSettings();
+                      },
+                    },
+                  ],
+                },
+                {
                   label: 'Sort in',
                   submenu: [
                     {
                       label: 'ascending',
                       click: () => {
-                        Settings.Todos.sort =
-                          Settings.Todos['sort-in'] === 'ascending'
-                            ? !Settings.Todos.sort
-                            : true;
                         Settings.Todos['sort-in'] = 'ascending';
-                        saveSettings();
+                        propagateSettings();
                       },
                     },
                     {
                       label: 'descending',
                       click: () => {
-                        Settings.Todos.sort =
-                          Settings.Todos['sort-in'] === 'descending'
-                            ? !Settings.Todos.sort
-                            : true;
                         Settings.Todos['sort-in'] = 'descending';
-                        saveSettings();
+                        propagateSettings();
                       },
                     },
                   ],
@@ -239,14 +274,14 @@ const createWindow = async () => {
                       label: 'Priority',
                       click: () => {
                         Settings.Todos['sort-by'] = 'Priority';
-                        saveSettings();
+                        propagateSettings();
                       },
                     },
                     {
                       label: 'Date',
                       click: () => {
                         Settings.Todos['sort-by'] = 'Date';
-                        saveSettings();
+                        propagateSettings();
                       },
                     },
                   ],
@@ -292,14 +327,15 @@ const createAddTaskWindow = () => {
     icon: getAssetPath('icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
-      devTools: true,
+      devTools: false,
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  addTodoTaskWindow.loadURL(resolveHtmlPath('todo:addTodo'));
+  addTodoTaskWindow.loadURL(resolveHtmlPath(''));
 
   addTodoTaskWindow.on('ready-to-show', () => {
+    prodModeProcessing(addTodoTaskWindow, 'AddTask');
     if (!addTodoTaskWindow) {
       throw new Error('"addTodoTaskWindow" is not defined');
     }
@@ -318,9 +354,11 @@ const createAddTaskWindow = () => {
 };
 
 ipcMain.on('todo:open-add-task-window', (event, arg) => {
-  if (addTodoTaskWindow === null) {
+  if (!addTodoTaskWindow) {
     createAddTaskWindow();
     sendDataToWindow(addTodoTaskWindow as any, 'todo:addTask.edit', arg);
+  } else {
+    addTodoTaskWindow.show();
   }
 });
 
@@ -341,14 +379,15 @@ const createComposeNoteWindow = (type: string) => {
     icon: getAssetPath('icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
-      devTools: true,
+      devTools: false,
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  composeNoteWindow.loadURL(resolveHtmlPath(`notes:compose/${type}`));
+  composeNoteWindow.loadURL(resolveHtmlPath(``));
 
   composeNoteWindow.on('ready-to-show', () => {
+    prodModeProcessing(composeNoteWindow, `Compose.${type}`);
     if (!composeNoteWindow) {
       throw new Error('"composeNoteWindow" is not defined');
     }
@@ -374,7 +413,7 @@ ipcMain.on('notes:compose', (event, data) => {
       `notes:compose.${data.type || 'edit'}`,
       data
     );
-    mainWindow?.reload();
+    // mainWindow?.reload();
   }
 });
 
