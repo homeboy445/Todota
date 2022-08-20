@@ -1,6 +1,6 @@
 # Todota (An electron-react-boilerplate App)
 An electron-react app for enhancing productivity and it offers features like taking Todos, Notes, and saving secrets like passwords safely. The app follows
-a monolithic architecture as it enculcates both the front-end part(react app) and back-end part(nodejs app) in itself.
+a **monolithic architecture** as it enculcates both the front-end part(react app) and back-end part(nodejs app) in itself.
 
 ## Todos
 
